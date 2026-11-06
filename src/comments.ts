@@ -1,0 +1,177 @@
+import * as vscode from 'vscode';
+import { rangeLabel, StoredComment } from './core/model';
+import { extractSnippet, splitLines } from './core/snippet';
+import { CommentStore } from './core/store';
+import { diffUri, parseDiffUri } from './diffUri';
+import { GitService } from './git';
+
+/** One rendered comment (the root note or a reply) inside a thread. */
+class NoteComment implements vscode.Comment {
+  mode = vscode.CommentMode.Preview;
+  readonly contextValue = 'editable';
+  readonly author: vscode.CommentAuthorInformation;
+  readonly timestamp: Date;
+  readonly label: string | undefined;
+
+  constructor(
+    /** Id of the stored comment or reply. */
+    readonly noteId: string,
+    /** Id of the stored comment that owns the thread. */
+    readonly threadId: string,
+    public body: string | vscode.MarkdownString,
+    author: string,
+    createdAt: string,
+    editedAt: string | undefined,
+  ) {
+    this.author = { name: author };
+    this.timestamp = new Date(createdAt);
+    this.label = editedAt ? 'edited' : undefined;
+  }
+}
+
+function bodyText(body: string | vscode.MarkdownString): string {
+  return typeof body === 'string' ? body : body.value;
+}
+
+/** Bridges stored comments and native Comment API threads on `diff-notes:` diff documents. */
+export class NotesController implements vscode.Disposable {
+  private readonly controller = vscode.comments.createCommentController('diffNotes', 'Diff Notes');
+  private readonly threads = new Map<string, vscode.CommentThread>();
+  private readonly threadIds = new WeakMap<vscode.CommentThread, string>();
+
+  constructor(
+    private readonly store: CommentStore,
+    private readonly git: GitService,
+    private readonly persist: () => Promise<void>,
+  ) {
+    this.controller.options = { prompt: 'Add a note', placeHolder: 'Note to self (Ctrl+Enter to save)' };
+    // Comments only in our diff documents, never in normal editors.
+    this.controller.commentingRangeProvider = {
+      provideCommentingRanges: doc => (parseDiffUri(doc.uri) ? [new vscode.Range(0, 0, Math.max(0, doc.lineCount - 1), 0)] : []),
+    };
+  }
+
+  /** Recreate threads for every stored comment (on start). */
+  restoreAll(): void {
+    for (const c of this.store.all()) {
+      const uri = diffUri({ file: c.file, origin: c.origin, side: c.side });
+      const thread = this.controller.createCommentThread(uri, new vscode.Range(c.startLine - 1, 0, c.endLine - 1, 0), []);
+      this.bind(thread, c.id);
+      this.render(thread, c);
+    }
+  }
+
+  async create(reply: vscode.CommentReply): Promise<void> {
+    const { thread, text } = reply;
+    const d = parseDiffUri(thread.uri);
+    if (!d || !text.trim()) {
+      return;
+    }
+    const range = thread.range ?? new vscode.Range(0, 0, 0, 0);
+    const startLine = range.start.line + 1;
+    const endLine = range.end.line + 1;
+    const doc = await vscode.workspace.openTextDocument(thread.uri);
+    const c = this.store.add({
+      author: await this.git.author(),
+      body: text,
+      file: d.file,
+      side: d.side,
+      origin: d.origin,
+      startLine,
+      endLine,
+      snippet: extractSnippet(splitLines(doc.getText()), startLine, endLine),
+    });
+    this.bind(thread, c.id);
+    this.render(thread, c);
+    await this.persist();
+  }
+
+  async reply(reply: vscode.CommentReply): Promise<void> {
+    const id = this.threadIds.get(reply.thread);
+    if (!id || !reply.text.trim()) {
+      return;
+    }
+    this.store.reply(id, await this.git.author(), reply.text);
+    this.render(reply.thread, this.store.get(id)!);
+    await this.persist();
+  }
+
+  cancelDraft(thread: vscode.CommentThread): void {
+    if (!this.threadIds.has(thread)) {
+      thread.dispose();
+    }
+  }
+
+  startEdit(comment: NoteComment): void {
+    this.setMode(comment, vscode.CommentMode.Editing);
+  }
+
+  async saveEdit(comment: NoteComment): Promise<void> {
+    const text = bodyText(comment.body);
+    const thread = this.threads.get(comment.threadId);
+    if (!thread) {
+      return;
+    }
+    if (!text.trim()) {
+      this.render(thread, this.store.get(comment.threadId)!);
+      return;
+    }
+    const c = this.store.edit(comment.noteId, text);
+    this.render(thread, c);
+    await this.persist();
+  }
+
+  cancelEdit(comment: NoteComment): void {
+    const thread = this.threads.get(comment.threadId);
+    const c = this.store.get(comment.threadId);
+    if (thread && c) {
+      this.render(thread, c);
+    }
+  }
+
+  async setStatus(thread: vscode.CommentThread, status: StoredComment['status']): Promise<void> {
+    const id = this.threadIds.get(thread);
+    if (!id) {
+      return;
+    }
+    const c = this.store.setStatus(id, status);
+    this.render(thread, c);
+    await this.persist();
+  }
+
+  dispose(): void {
+    this.controller.dispose();
+  }
+
+  private bind(thread: vscode.CommentThread, id: string): void {
+    this.threads.set(id, thread);
+    this.threadIds.set(thread, id);
+  }
+
+  private render(thread: vscode.CommentThread, c: StoredComment): void {
+    thread.comments = [
+      new NoteComment(c.id, c.id, c.body, c.author, c.createdAt, c.editedAt),
+      ...c.replies.map(r => new NoteComment(r.id, c.id, r.body, r.author, r.createdAt, r.editedAt)),
+    ];
+    thread.label = rangeLabel(c);
+    thread.contextValue = c.status;
+    thread.state = c.status === 'resolved' ? vscode.CommentThreadState.Resolved : vscode.CommentThreadState.Unresolved;
+    thread.canReply = true;
+    // Resolved notes are hidden (collapsed), never deleted.
+    thread.collapsibleState =
+      c.status === 'resolved' ? vscode.CommentThreadCollapsibleState.Collapsed : vscode.CommentThreadCollapsibleState.Expanded;
+  }
+
+  private setMode(comment: NoteComment, mode: vscode.CommentMode): void {
+    const thread = this.threads.get(comment.threadId);
+    if (!thread) {
+      return;
+    }
+    thread.comments = thread.comments.map(x => {
+      if (x instanceof NoteComment && x.noteId === comment.noteId) {
+        x.mode = mode;
+      }
+      return x;
+    });
+  }
+}

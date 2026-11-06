@@ -1,0 +1,84 @@
+{
+  "name": "diff-notes",
+  "displayName": "Diff Notes",
+  "description": "PR-style notes on local, unpushed commits and uncommitted changes.",
+  "version": "0.0.1",
+  "publisher": "bero-labs",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["SCM Providers", "Other"],
+  "main": "./out/src/extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "extensionDependencies": ["vscode.git"],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "diffNotes", "title": "Diff Notes", "icon": "media/diff-notes.svg" }
+      ]
+    },
+    "views": {
+      "diffNotes": [
+        { "id": "diffNotes.commits", "name": "Commits" }
+      ]
+    },
+    "viewsWelcome": [
+      { "view": "diffNotes.commits", "contents": "No Git repository found in this workspace." }
+    ],
+    "commands": [
+      { "command": "diffNotes.refresh", "title": "Refresh", "category": "Diff Notes", "icon": "$(refresh)" },
+      { "command": "diffNotes.openDiff", "title": "Open Diff", "category": "Diff Notes" },
+      { "command": "diffNotes.createComment", "title": "Add Note", "category": "Diff Notes" },
+      { "command": "diffNotes.cancelDraft", "title": "Cancel", "category": "Diff Notes" },
+      { "command": "diffNotes.reply", "title": "Reply", "category": "Diff Notes" },
+      { "command": "diffNotes.editComment", "title": "Edit", "category": "Diff Notes", "icon": "$(edit)" },
+      { "command": "diffNotes.saveComment", "title": "Save", "category": "Diff Notes" },
+      { "command": "diffNotes.cancelEdit", "title": "Cancel", "category": "Diff Notes" },
+      { "command": "diffNotes.resolve", "title": "Resolve", "category": "Diff Notes", "icon": "$(check)" },
+      { "command": "diffNotes.reopen", "title": "Reopen", "category": "Diff Notes", "icon": "$(issue-reopened)" }
+    ],
+    "menus": {
+      "view/title": [
+        { "command": "diffNotes.refresh", "when": "view == diffNotes.commits", "group": "navigation" }
+      ],
+      "comments/commentThread/context": [
+        { "command": "diffNotes.createComment", "when": "commentController == diffNotes && commentThreadIsEmpty", "group": "inline@1" },
+        { "command": "diffNotes.cancelDraft", "when": "commentController == diffNotes && commentThreadIsEmpty", "group": "inline@2" },
+        { "command": "diffNotes.reply", "when": "commentController == diffNotes && !commentThreadIsEmpty", "group": "inline@1" }
+      ],
+      "comments/commentThread/title": [
+        { "command": "diffNotes.resolve", "when": "commentController == diffNotes && commentThread == open", "group": "navigation" },
+        { "command": "diffNotes.reopen", "when": "commentController == diffNotes && commentThread == resolved", "group": "navigation" }
+      ],
+      "comments/comment/title": [
+        { "command": "diffNotes.editComment", "when": "commentController == diffNotes && comment == editable", "group": "inline@1" }
+      ],
+      "comments/comment/context": [
+        { "command": "diffNotes.saveComment", "when": "commentController == diffNotes", "group": "inline@1" },
+        { "command": "diffNotes.cancelEdit", "when": "commentController == diffNotes", "group": "inline@2" }
+      ],
+      "commandPalette": [
+        { "command": "diffNotes.openDiff", "when": "false" },
+        { "command": "diffNotes.createComment", "when": "false" },
+        { "command": "diffNotes.cancelDraft", "when": "false" },
+        { "command": "diffNotes.reply", "when": "false" },
+        { "command": "diffNotes.editComment", "when": "false" },
+        { "command": "diffNotes.saveComment", "when": "false" },
+        { "command": "diffNotes.cancelEdit", "when": "false" },
+        { "command": "diffNotes.resolve", "when": "false" },
+        { "command": "diffNotes.reopen", "when": "false" }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "tsc -p . && node --test --test-reporter=dot \"out/test/**/*.test.js\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "~1.90.0",
+    "typescript": "^5.6.0"
+  }
+}
