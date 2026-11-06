@@ -74,6 +74,8 @@
   },
   "scripts": {
     "build": "tsc -p .",
+    "sandbox": "node scripts/make-sandbox.js",
+    "sandbox:reset": "node scripts/make-sandbox.js --reset",
     "test": "tsc -p . && node --test --test-reporter=dot \"out/test/**/*.test.js\""
   },
   "devDependencies": {

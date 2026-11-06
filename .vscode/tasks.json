@@ -1,6 +1,8 @@
 {
   "version": "2.0.0",
   "tasks": [
-    { "type": "npm", "script": "build", "group": "build", "problemMatcher": "$tsc" }
+    { "type": "npm", "script": "build", "group": "build", "problemMatcher": "$tsc" },
+    { "type": "npm", "script": "sandbox", "label": "npm: sandbox", "problemMatcher": [] },
+    { "label": "build and sandbox", "dependsOn": ["npm: build", "npm: sandbox"], "dependsOrder": "sequence", "problemMatcher": [] }
   ]
 }

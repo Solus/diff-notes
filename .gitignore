@@ -1,3 +1,5 @@
 node_modules/
 out/
 *.vsix
+sandbox/
+sandbox-remote.git/

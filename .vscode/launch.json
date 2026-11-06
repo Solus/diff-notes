@@ -5,9 +5,9 @@
       "name": "Run Extension",
       "type": "extensionHost",
       "request": "launch",
-      "args": ["${workspaceFolder}", "--extensionDevelopmentPath=${workspaceFolder}"],
+      "args": ["${workspaceFolder}/sandbox", "--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/out/**/*.js"],
-      "preLaunchTask": "npm: build"
+      "preLaunchTask": "build and sandbox"
     }
   ]
 }
