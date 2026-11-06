@@ -12,6 +12,7 @@ import { CommentStore } from './core/store';
 import { StoredComment, WORKING_TREE } from './core/model';
 import { diffUri } from './diffUri';
 import { GitService } from './git';
+import { Markers } from './markers';
 import { HookManager } from './hook';
 import { API, GitExtension, Repository } from './gitApi';
 import { NotesFileIO, resolveGitDir } from './storage';
@@ -61,7 +62,10 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     bar.text = `$(comment) ${n}`;
     bar.tooltip = `Diff Notes: ${n} open comment${n === 1 ? '' : 's'} on unpushed commits and working tree`;
   };
+  const markers = new Markers(store, ctx);
+  ctx.subscriptions.push(markers);
   const refreshComments = (): void => {
+    markers.refresh();
     commentsView.refresh();
     commits.refresh();
     void updateBar();
@@ -117,6 +121,7 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
   notes.restoreAll();
   const anchoring = new Anchoring(store, git, async changed => {
     changed.forEach(c => notes.sync(c));
+    markers.refresh();
     content.refreshWorkingTree();
     await persist();
   });

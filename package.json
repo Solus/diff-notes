@@ -39,6 +39,18 @@
         }
       }
     },
+    "colors": [
+      {
+        "id": "diffNotes.commentedLineBackground",
+        "description": "Background tint of lines that have an open Diff Notes note.",
+        "defaults": { "dark": "#d9a8431f", "light": "#b8860b26", "highContrast": "#d9a84340", "highContrastLight": "#b8860b40" }
+      },
+      {
+        "id": "diffNotes.overviewRulerMarker",
+        "description": "Scrollbar (overview ruler) mark for lines that have an open Diff Notes note.",
+        "defaults": { "dark": "#d9a843cc", "light": "#b8860bcc", "highContrast": "#ffd866", "highContrastLight": "#8a6500" }
+      }
+    ],
     "commands": [
       { "command": "diffNotes.groupBy", "title": "Group By...", "category": "Diff Notes", "icon": "$(list-tree)" },
       { "command": "diffNotes.openOnly", "title": "Show Open Only", "category": "Diff Notes", "icon": "$(filter)" },

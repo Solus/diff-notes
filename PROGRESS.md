@@ -10,6 +10,9 @@
 - [x] 5 Pushed (SPEC §6): PUSHED separator and group, excluded from counter.
 - [x] 6 Pre-push hook (SPEC §6): opt-in setting, chains existing hooks.
 - [x] 7 Polish (SPEC §9): remembered grouping, renames and deletions, remaining open details.
+- [x] 8 Diff markers: commented lines get a soft background tint and a gutter note icon, plus scrollbar (overview ruler) marks; colours as contributed theme colours with defaults. STOP.
+- [ ] 9 Panel polish: tinted status icon per note (open/resolved/outdated/pushed), rich markdown tooltips (full text, author, date, range), file badges + colour for files with open notes, open-notes count badge on the sidebar icon. STOP.
+- [ ] 10 Note box: status label on notes (Resolved, Outdated), git user name as author with an avatar icon. STOP.
 
 ## Decisions
 - F5 opens `sandbox/` (throwaway repo from `npm run sandbox`; `sandbox:reset` recreates; both gitignored with `sandbox-remote.git`).
@@ -42,6 +45,7 @@
 - Group-by choice is saved in workspaceState (`diffNotes.groupBy`); Open-only stays on at start (SPEC: on by default).
 - Renames: a comment on a renamed file follows it (new side only; working tree and landing/rewritten commits) and its stored `file` is updated. Deleted files: new-side comments go outdated; old-side comments on a commit stay.
 - Commits view shows ` · N open notes` on working tree, commit and file rows (open, non-outdated only).
+- Markers: one decoration type (whole-line tint, `media/note-gutter.svg` gutter icon, overview ruler Right lane) applied by `src/markers.ts` to visible `diff-notes:` editors; lines from pure `markerSpans` (open, non-outdated, same file/origin/side). Colours `diffNotes.commentedLineBackground` / `diffNotes.overviewRulerMarker` (amber, low alpha). Refreshed on every persist, re-anchor, and editor visibility/document open.
 
 ## Log
 - S1 built: scaffold, Commits view (working tree + unpushed commits + files), native diff, notes create/edit/reply/resolve/reopen, JSON in `.git/diff-notes/`, reload on start.
@@ -67,3 +71,7 @@
 - S7 open: not checked in a running VS Code (F5: rename a commented file and commit; reload and see Group-by kept); multi-repo still first repo only; working-tree diff still not editable in place; old-side comments on a renamed file are not re-pathed.
 - Fix: Cancel button crashed (VS Code passes the reply box object, not the thread); now closes empty drafts, collapses existing threads; Esc closes the editor. Esc not checked in a running VS Code.
 - Fix: Esc did nothing because VS Code already binds Esc to hideComment, which only flips a thread to Collapsed; a brand-new empty box is already 'collapsed', so no change fires (read from VS Code 1.145 source, not run). Our duplicate Esc binding removed; built-in Esc still hides existing notes. Cancel always closes without asking (new empty box disposed, existing note collapsed); empty drafts we have seen are disposed when their diff tab closes. Open: Esc on a brand-new box still no-op; keybindings cannot read the box text.
+- Esc root cause (confirmed under F5 with a debugger, VS Code 1.145.2): VS Code registers `workbench.action.hideComment` twice; the later alt+Backspace handler replaces the Esc one and finds no controller for a comment box, so Esc is a no-op everywhere (VS Code bug; supersedes the line above). Decided: no Esc workaround; Cancel is the way to close a note. New notes: Cancel only. Candidate upstream report.
+- S8 built: amber line tint, gutter note icon and scrollbar marks for open notes on both diff sides; two contributed theme colours with light/dark/HC defaults; 1 test.
+- S8 decided: resolved and outdated notes get no marker; refresh piggybacks on persist and re-anchor.
+- S8 open: not checked in a running VS Code (F5): gutter icon (glyph margin) vs VS Code's "+" (line-decoration strip) are different columns so should coexist, unverified; a pending unsaved draft box gets no marker until saved.
