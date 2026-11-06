@@ -56,6 +56,9 @@ export class NotesController implements vscode.Disposable {
   private readonly threadIds = new WeakMap<vscode.CommentThread, string>();
   /** Ids whose thread sits on the outdated view rather than a live diff. */
   private readonly outdatedIds = new Set<string>();
+  /** Empty new threads we have seen (VS Code hands us a new thread only through Cancel / Save). */
+  private readonly drafts = new Set<vscode.CommentThread>();
+  private readonly tabWatch = vscode.window.tabGroups.onDidChangeTabs(() => this.pruneDrafts());
 
   constructor(
     private readonly store: CommentStore,
@@ -139,8 +142,10 @@ export class NotesController implements vscode.Disposable {
     const { thread, text } = reply;
     const d = parseDiffUri(thread.uri);
     if (!d || !text.trim()) {
+      this.drafts.add(thread);
       return;
     }
+    this.drafts.delete(thread);
     const range = thread.range ?? new vscode.Range(0, 0, 0, 0);
     const startLine = range.start.line + 1;
     const endLine = range.end.line + 1;
@@ -170,13 +175,54 @@ export class NotesController implements vscode.Disposable {
     await this.persist();
   }
 
-  /** Cancel in the reply box. VS Code passes a CommentReply ({ thread, text }), not the thread. */
-  cancelDraft(arg: vscode.CommentReply | vscode.CommentThread): void {
+  /**
+   * Cancel in the reply box. VS Code passes a CommentReply ({ thread, text }), not the thread.
+   * Empty box: close. Typed text: ask before discarding.
+   */
+  async cancelDraft(arg: vscode.CommentReply | vscode.CommentThread): Promise<void> {
     const thread = 'thread' in arg ? arg.thread : arg;
+    const text = 'thread' in arg ? arg.text : '';
+    if (text.trim()) {
+      const discard = 'Discard';
+      const pick = await vscode.window.showWarningMessage('Discard this note?', { modal: true }, discard, 'Keep editing');
+      if (pick !== discard) {
+        this.drafts.add(thread);
+        return;
+      }
+    }
+    this.closeThread(thread);
+  }
+
+  private closeThread(thread: vscode.CommentThread): void {
     if (this.threadIds.has(thread)) {
       thread.collapsibleState = vscode.CommentThreadCollapsibleState.Collapsed;
     } else {
+      this.drafts.delete(thread);
       thread.dispose();
+    }
+  }
+
+  /** Dispose empty new threads (seen via Cancel/empty save) whose diff is no longer open in any tab. */
+  private pruneDrafts(): void {
+    const open = new Set<string>();
+    for (const g of vscode.window.tabGroups.all) {
+      for (const t of g.tabs) {
+        const i = t.input;
+        if (i instanceof vscode.TabInputTextDiff) {
+          open.add(i.original.toString());
+          open.add(i.modified.toString());
+        } else if (i instanceof vscode.TabInputText) {
+          open.add(i.uri.toString());
+        }
+      }
+    }
+    for (const t of [...this.drafts]) {
+      if (this.threadIds.has(t)) {
+        this.drafts.delete(t);
+      } else if (!open.has(t.uri.toString())) {
+        this.drafts.delete(t);
+        t.dispose();
+      }
     }
   }
 
@@ -218,6 +264,7 @@ export class NotesController implements vscode.Disposable {
   }
 
   dispose(): void {
+    this.tabWatch.dispose();
     this.controller.dispose();
   }
 

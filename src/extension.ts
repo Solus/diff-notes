@@ -206,7 +206,6 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
   reg('diffNotes.createComment', (r: vscode.CommentReply) => notes.create(r));
   reg('diffNotes.reply', (r: vscode.CommentReply) => notes.reply(r));
   reg('diffNotes.cancelDraft', (r: vscode.CommentReply | vscode.CommentThread) => notes.cancelDraft(r));
-  reg('diffNotes.cancelActive', () => vscode.commands.executeCommand('workbench.action.hideComment'));
   reg('diffNotes.editComment', c => notes.startEdit(c));
   reg('diffNotes.saveComment', c => notes.saveEdit(c));
   reg('diffNotes.cancelEdit', c => notes.cancelEdit(c));
