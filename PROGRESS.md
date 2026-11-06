@@ -12,6 +12,7 @@
 - [ ] 7 Polish (SPEC §9): remembered grouping, renames and deletions, remaining open details.
 
 ## Decisions
+- F5 opens `sandbox/` (throwaway repo from `npm run sandbox`; `sandbox:reset` recreates; both gitignored with `sandbox-remote.git`).
 - Both diff sides are read-only `diff-notes:/<path>?origin=<sha|working-tree>&side=<old|new>` docs; this keeps comments out of normal editors (cost: working-tree diff is not editable).
 - Sides: commit old = first parent (`sha^`), commit new = `sha`; working tree old = `HEAD`, new = file on disk.
 - Unpushed = `@{upstream}..HEAD`; with no upstream, `HEAD --not --remotes` (cap 200).
