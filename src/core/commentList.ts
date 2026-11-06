@@ -3,12 +3,14 @@ import { StoredComment, WORKING_TREE } from './model';
 
 /** Key of the Outdated group. */
 export const OUTDATED_KEY = 'outdated';
+/** Key of the PUSHED group. */
+export const PUSHED_KEY = 'pushed';
 
 export type GroupMode = 'commit' | 'file' | 'none';
 
 export interface CommentGroup {
-  /** Working tree, a commit, a commit not in the unpushed list, a file, or the Outdated group. */
-  kind: 'worktree' | 'commit' | 'other' | 'file' | 'outdated';
+  /** Working tree, a commit, a file, or the PUSHED / Outdated group. */
+  kind: 'worktree' | 'commit' | 'file' | 'pushed' | 'outdated';
   /** Commit SHA, `working-tree`, or file path. */
   key: string;
   comments: StoredComment[];
@@ -33,6 +35,11 @@ function originRank(origin: string, order: readonly string[]): number {
   return i === -1 ? order.length : i;
 }
 
+/** On a commit that is no longer in the unpushed list (and not outdated). */
+export function isPushed(c: StoredComment, unpushedShas: readonly string[]): boolean {
+  return !c.outdated && c.origin !== WORKING_TREE && !unpushedShas.includes(c.origin);
+}
+
 /** Commit-list order, then file, then line. */
 export function sortComments(comments: readonly StoredComment[], order: readonly string[]): StoredComment[] {
   return [...comments].sort(
@@ -47,14 +54,20 @@ export function sortComments(comments: readonly StoredComment[], order: readonly
 
 /**
  * Groups for the chosen mode. `order` = unpushed commit SHAs, newest first (the Commits list order).
- * Outdated comments always form their own last group, in every mode.
- * Mode `none` returns only that group: use `sortComments` on the rest for the flat list.
+ * Comments on pushed commits form a PUSHED group and outdated ones an Outdated group
+ * (in that order, last), in every mode. Mode `none` returns only those groups: use
+ * `sortComments` on the rest for the flat list.
  */
 export function groupComments(comments: readonly StoredComment[], mode: GroupMode, order: readonly string[]): CommentGroup[] {
   const outdated = comments.filter(c => c.outdated);
-  const sorted = sortComments(comments.filter(c => !c.outdated), order);
+  const pushed = comments.filter(c => isPushed(c, order));
+  const sorted = sortComments(comments.filter(c => !c.outdated && !isPushed(c, order)), order);
   const groups: CommentGroup[] = [];
-  const tail = (): CommentGroup[] => (outdated.length ? [...groups, { kind: 'outdated', key: OUTDATED_KEY, comments: sortComments(outdated, order) }] : groups);
+  const tail = (): CommentGroup[] => [
+    ...groups,
+    ...(pushed.length ? [{ kind: 'pushed' as const, key: PUSHED_KEY, comments: sortComments(pushed, order) }] : []),
+    ...(outdated.length ? [{ kind: 'outdated' as const, key: OUTDATED_KEY, comments: sortComments(outdated, order) }] : []),
+  ];
   if (mode === 'none') {
     return tail();
   }
@@ -64,7 +77,7 @@ export function groupComments(comments: readonly StoredComment[], mode: GroupMod
     let g = groups.find(x => x.key === key);
     if (!g) {
       const kind: CommentGroup['kind'] =
-        mode === 'file' ? 'file' : c.origin === WORKING_TREE ? 'worktree' : order.includes(c.origin) ? 'commit' : 'other';
+        mode === 'file' ? 'file' : c.origin === WORKING_TREE ? 'worktree' : 'commit';
       g = { kind, key, comments: [] };
       groups.push(g);
     }

@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { CommentGroup, filterComments, groupComments, GroupMode, sortComments } from './core/commentList';
+import { CommentGroup, filterComments, groupComments, GroupMode, isPushed, sortComments } from './core/commentList';
 import { rangeLabel, StoredComment, WORKING_TREE } from './core/model';
 import { CommentStore } from './core/store';
 import { GitService } from './git';
@@ -31,7 +31,7 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
 
   async getChildren(node?: Node): Promise<Node[]> {
     if (node) {
-      return node.kind === 'group' ? node.group.comments.map(comment => ({ kind: 'comment', comment, showCommit: this.mode !== 'commit' || node.group.kind === 'outdated' })) : [];
+      return node.kind === 'group' ? node.group.comments.map(comment => ({ kind: 'comment', comment, showCommit: this.mode !== 'commit' || node.group.kind === 'outdated' || node.group.kind === 'pushed' })) : [];
     }
     if (!this.git) {
       return [];
@@ -41,7 +41,7 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
     const order = commits.map(c => c.sha);
     const comments = filterComments(this.store.all(), this.openOnly);
     if (this.mode === 'none') {
-      const flat: Node[] = sortComments(comments.filter(c => !c.outdated), order).map(comment => ({ kind: 'comment', comment, showCommit: true }));
+      const flat: Node[] = sortComments(comments.filter(c => !c.outdated && !isPushed(c, order)), order).map(comment => ({ kind: 'comment', comment, showCommit: true }));
       return [...flat, ...groupComments(comments, 'none', order).map(group => ({ kind: 'group' as const, group, label: this.groupLabel(group) }))];
     }
     return groupComments(comments, this.mode, order).map(group => ({ kind: 'group', group, label: this.groupLabel(group) }));
@@ -52,7 +52,7 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
       const g = node.group;
       const item = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.Expanded);
       item.description = String(g.comments.length);
-      item.iconPath = new vscode.ThemeIcon(g.kind === 'worktree' ? 'edit' : g.kind === 'file' ? 'file' : g.kind === 'outdated' ? 'history' : 'git-commit');
+      item.iconPath = new vscode.ThemeIcon(g.kind === 'worktree' ? 'edit' : g.kind === 'file' ? 'file' : g.kind === 'outdated' ? 'history' : g.kind === 'pushed' ? 'repo-pushed' : 'git-commit');
       item.contextValue = 'commentGroup';
       return item;
     }
@@ -82,8 +82,8 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
         return 'Working tree';
       case 'commit':
         return this.subjects.get(g.key) ?? g.key.slice(0, 7);
-      case 'other':
-        return `${g.key.slice(0, 7)} (not in unpushed list)`;
+      case 'pushed':
+        return 'PUSHED';
       case 'file':
         return g.key;
       case 'outdated':

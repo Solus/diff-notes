@@ -7,7 +7,7 @@
 - [x] 2 Anchor module (SPEC §3–4): pure `src/anchor/`: stored snippet + new text → new range or outdated. Unit tests: unchanged, moved, partially changed, removed. No VS Code wiring.
 - [x] 3 Comments list (SPEC §5 without outdated view, §6 counter): Comments TreeView, group by commit/file/none, Open-only filter, status bar counter. STOP.
 - [x] 4 Wire anchoring (SPEC §4, §5 outdated view): re-anchor on edit, commit, amend, rebase; Outdated group; native read-only outdated view. STOP.
-- [ ] 5 Pushed (SPEC §6): PUSHED separator and group, excluded from counter.
+- [x] 5 Pushed (SPEC §6): PUSHED separator and group, excluded from counter.
 - [ ] 6 Pre-push hook (SPEC §6): opt-in setting, chains existing hooks.
 - [ ] 7 Polish (SPEC §9): remembered grouping, renames and deletions, remaining open details.
 
@@ -35,6 +35,7 @@
 - Commit "vanished" = not reachable from any ref or HEAD. Rewritten commit = same author+subject in last 200 of HEAD, then unpushed commits; must touch the file and match the snippet. Old objects are read from git (no reflog needed).
 - Outdated = `outdated: true` on the stored comment (last known origin/range/snippet kept); retried on later runs, can become anchored again. Own last group "Outdated" in every mode; not counted in the status bar.
 - Outdated view: read-only `diff-notes-outdated:/<file>?id=` doc with the snippet; thread created on open; title button "Open Current Diff". Thread contextValue: open|resolved|outdated-open|outdated-resolved.
+- PUSHED group (`kind 'pushed'`) = non-outdated comments on a commit not in the unpushed list; own group in every mode, placed before Outdated, shows commit per row; not counted.
 
 ## Log
 - S1 built: scaffold, Commits view (working tree + unpushed commits + files), native diff, notes create/edit/reply/resolve/reopen, JSON in `.git/diff-notes/`, reload on start.
@@ -49,3 +50,6 @@
 - S4 built: re-anchoring on save/commit/amend/rebase/checkout; working-tree comments move to the commit they land in; Outdated group and read-only outdated view with reply/resolve/Open Current Diff; 9 tests.
 - S4 decided: outdated comments do not count in the status bar; "(not in unpushed list)" now only holds pushed commits until slice 5.
 - S4 open: not checked in a running VS Code (needs F5: edit a commented file, commit, amend, rebase -i); multi-commit landing picks the newest matching commit; "Open Current Diff" on a vanished commit relies on git still holding the object.
+- S5 built: PUSHED group replaces "(not in unpushed list)" in all group modes (before Outdated); excluded from counter; 2 tests changed/added.
+- S5 decided: pushed comments stay in the PUSHED group even in File mode (not mixed into file groups).
+- S5 open: not checked in a running VS Code (needs F5: commit with a note, `git push` in sandbox, see it move to PUSHED and counter drop).

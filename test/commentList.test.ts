@@ -25,20 +25,27 @@ test('counter counts open comments on working tree and unpushed only', () => {
   assert.equal(countOpenUnpushed(all, []), 1);
 });
 
-test('commit grouping: working tree, commits in list order, then others', () => {
+test('commit grouping: working tree, commits in list order, then PUSHED', () => {
   const g = groupComments(all, 'commit', order);
   assert.deepEqual(g.map(x => [x.kind, x.key, x.comments.length]), [
-    ['worktree', WORKING_TREE, 1], ['commit', 'new', 2], ['commit', 'old', 1], ['other', 'gone', 1],
+    ['worktree', WORKING_TREE, 1], ['commit', 'new', 2], ['commit', 'old', 1], ['pushed', 'pushed', 1],
   ]);
 });
 
 test('file grouping: by path, comments by commit order then line', () => {
   const g = groupComments(all, 'file', order);
-  assert.deepEqual(g.map(x => [x.key, x.comments.length]), [['a.ts', 3], ['b.ts', 2]]);
-  assert.deepEqual(g[0].comments.map(c => c.origin), [WORKING_TREE, 'new', 'gone']);
+  assert.deepEqual(g.map(x => [x.key, x.comments.length]), [['a.ts', 2], ['b.ts', 2], ['pushed', 1]]);
+  assert.deepEqual(g[0].comments.map(c => c.origin), [WORKING_TREE, 'new']);
 });
 
 test('none: no groups, flat list in commit order', () => {
-  assert.deepEqual(groupComments(all, 'none', order), []);
+  assert.deepEqual(groupComments(all, 'none', order).map(x => x.kind), ['pushed']);
   assert.deepEqual(sortComments(all, order).map(c => c.origin), [WORKING_TREE, 'new', 'new', 'old', 'gone']);
+});
+
+test('pushed group comes before outdated, in every mode', () => {
+  const out = { ...mk('old', 'a.ts', 1), outdated: true };
+  for (const mode of ['commit', 'file', 'none'] as const) {
+    assert.deepEqual(groupComments([...all, out], mode, order).slice(-2).map(x => x.kind), ['pushed', 'outdated']);
+  }
 });
