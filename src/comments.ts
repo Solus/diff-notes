@@ -175,23 +175,11 @@ export class NotesController implements vscode.Disposable {
     await this.persist();
   }
 
-  /**
-   * Cancel in the reply box. VS Code passes a CommentReply ({ thread, text }), not the thread.
-   * Empty box: close. Typed text: ask before discarding.
-   */
-  async cancelDraft(arg: vscode.CommentReply | vscode.CommentThread): Promise<void> {
-    const thread = 'thread' in arg ? arg.thread : arg;
-    const text = 'thread' in arg ? arg.text : '';
-    if (text.trim()) {
-      const discard = 'Discard';
-      const pick = await vscode.window.showWarningMessage('Discard this note?', { modal: true }, discard, 'Keep editing');
-      if (pick !== discard) {
-        this.drafts.add(thread);
-        return;
-      }
-    }
-    this.closeThread(thread);
+  /** Cancel in the reply box: always closes, no confirmation. VS Code passes a CommentReply ({ thread, text }). */
+  cancelDraft(arg: vscode.CommentReply | vscode.CommentThread): void {
+    this.closeThread('thread' in arg ? arg.thread : arg);
   }
+
 
   private closeThread(thread: vscode.CommentThread): void {
     if (this.threadIds.has(thread)) {
