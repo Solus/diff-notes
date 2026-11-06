@@ -49,12 +49,16 @@
       { "command": "diffNotes.openDiff", "title": "Open Diff", "category": "Diff Notes" },
       { "command": "diffNotes.createComment", "title": "Add Note", "category": "Diff Notes" },
       { "command": "diffNotes.cancelDraft", "title": "Cancel", "category": "Diff Notes" },
+      { "command": "diffNotes.cancelActive", "title": "Close Note Editor", "category": "Diff Notes" },
       { "command": "diffNotes.reply", "title": "Reply", "category": "Diff Notes" },
       { "command": "diffNotes.editComment", "title": "Edit", "category": "Diff Notes", "icon": "$(edit)" },
       { "command": "diffNotes.saveComment", "title": "Save", "category": "Diff Notes" },
       { "command": "diffNotes.cancelEdit", "title": "Cancel", "category": "Diff Notes" },
       { "command": "diffNotes.resolve", "title": "Resolve", "category": "Diff Notes", "icon": "$(check)" },
       { "command": "diffNotes.reopen", "title": "Reopen", "category": "Diff Notes", "icon": "$(issue-reopened)" }
+    ],
+    "keybindings": [
+      { "command": "diffNotes.cancelActive", "key": "escape", "when": "commentEditorFocused && commentController == diffNotes" }
     ],
     "menus": {
       "view/title": [
@@ -86,6 +90,7 @@
         { "command": "diffNotes.openCurrentDiff", "when": "false" },
         { "command": "diffNotes.createComment", "when": "false" },
         { "command": "diffNotes.cancelDraft", "when": "false" },
+        { "command": "diffNotes.cancelActive", "when": "false" },
         { "command": "diffNotes.reply", "when": "false" },
         { "command": "diffNotes.editComment", "when": "false" },
         { "command": "diffNotes.saveComment", "when": "false" },

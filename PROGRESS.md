@@ -65,3 +65,4 @@
 - S7 built: remembered Group-by per workspace; comments follow file renames; Commits view note counts (SPEC §5 badges); 2 tests added.
 - S7 decided: rename following covers the new side only; SPEC §9 counter question settled (working tree counts).
 - S7 open: not checked in a running VS Code (F5: rename a commented file and commit; reload and see Group-by kept); multi-repo still first repo only; working-tree diff still not editable in place; old-side comments on a renamed file are not re-pathed.
+- Fix: Cancel button crashed (VS Code passes the reply box object, not the thread); now closes empty drafts, collapses existing threads; Esc closes the editor. Esc not checked in a running VS Code.

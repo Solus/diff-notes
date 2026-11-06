@@ -170,8 +170,12 @@ export class NotesController implements vscode.Disposable {
     await this.persist();
   }
 
-  cancelDraft(thread: vscode.CommentThread): void {
-    if (!this.threadIds.has(thread)) {
+  /** Cancel in the reply box. VS Code passes a CommentReply ({ thread, text }), not the thread. */
+  cancelDraft(arg: vscode.CommentReply | vscode.CommentThread): void {
+    const thread = 'thread' in arg ? arg.thread : arg;
+    if (this.threadIds.has(thread)) {
+      thread.collapsibleState = vscode.CommentThreadCollapsibleState.Collapsed;
+    } else {
       thread.dispose();
     }
   }
