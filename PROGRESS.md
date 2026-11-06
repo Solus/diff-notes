@@ -23,6 +23,7 @@
 - Single repo: first one the git extension opens.
 - Pure, vscode-free code in `src/core/`; tests = `node --test` on compiled `out/test`.
 
+- Activation never awaits a repo; setup runs when the first repo opens (now or later). F5 opens this repo.
 ## Log
 - S1 built: scaffold, Commits view (working tree + unpushed commits + files), native diff, notes create/edit/reply/resolve/reopen, JSON in `.git/diff-notes/`, reload on start.
 - S1 decided: read-only `diff-notes:` docs on both sides so notes stay out of normal editors.

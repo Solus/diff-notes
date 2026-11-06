@@ -24,7 +24,12 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
     return;
   }
   const api = exports.getAPI(1);
-  const repo = await firstRepository(api);
+  // Never block activation on a repository: with none open this would hang forever (endless progress bar).
+  // The empty tree shows the "No Git repository" welcome text until one opens.
+  void whenRepository(api, ctx, repo => start(ctx, commits, api, repo));
+}
+
+async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api: API, repo: Repository): Promise<void> {
   const git = new GitService(api, repo);
 
   const io = new NotesFileIO(await resolveGitDir(git.root));
@@ -82,27 +87,19 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
   reg('diffNotes.reopen', (t: vscode.CommentThread) => notes.setStatus(t, 'open'));
 }
 
-/** First repository the git extension opens (single-repo for now). */
-async function firstRepository(api: API): Promise<Repository> {
-  if (api.state !== 'initialized') {
-    await new Promise<void>(resolve => {
-      const sub = api.onDidChangeState(s => {
-        if (s === 'initialized') {
-          sub.dispose();
-          resolve();
-        }
-      });
-    });
-  }
+/** Calls `cb` once with the first repository the git extension opens (single-repo for now), now or later. */
+async function whenRepository(api: API, ctx: vscode.ExtensionContext, cb: (r: Repository) => Promise<void>): Promise<void> {
+  let done = false;
+  const take = (r: Repository): void => {
+    if (!done) {
+      done = true;
+      void cb(r);
+    }
+  };
+  ctx.subscriptions.push(api.onDidOpenRepository(take));
   if (api.repositories.length > 0) {
-    return api.repositories[0];
+    take(api.repositories[0]);
   }
-  return new Promise(resolve => {
-    const sub = api.onDidOpenRepository(r => {
-      sub.dispose();
-      resolve(r);
-    });
-  });
 }
 
 export function deactivate(): void {}
