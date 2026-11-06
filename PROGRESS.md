@@ -6,7 +6,7 @@
 - [x] 1 Base (SPEC §1–3): scaffold; Commits TreeView (working tree, unpushed commits, files); open diff; create/edit/reply/resolve line and range comments; persist to `.git/diff-notes/`; reload on start. STOP.
 - [x] 2 Anchor module (SPEC §3–4): pure `src/anchor/`: stored snippet + new text → new range or outdated. Unit tests: unchanged, moved, partially changed, removed. No VS Code wiring.
 - [x] 3 Comments list (SPEC §5 without outdated view, §6 counter): Comments TreeView, group by commit/file/none, Open-only filter, status bar counter. STOP.
-- [ ] 4 Wire anchoring (SPEC §4, §5 outdated view): re-anchor on edit, commit, amend, rebase; Outdated group; native read-only outdated view. STOP.
+- [x] 4 Wire anchoring (SPEC §4, §5 outdated view): re-anchor on edit, commit, amend, rebase; Outdated group; native read-only outdated view. STOP.
 - [ ] 5 Pushed (SPEC §6): PUSHED separator and group, excluded from counter.
 - [ ] 6 Pre-push hook (SPEC §6): opt-in setting, chains existing hooks.
 - [ ] 7 Polish (SPEC §9): remembered grouping, renames and deletions, remaining open details.
@@ -30,6 +30,11 @@
 - Comments list: pure grouping/count in `src/core/commentList.ts`; group mode and Open-only live in memory only (remembering = slice 7). Commit-mode order: working tree, unpushed commits, then "(not in unpushed list)" groups (becomes PUSHED/Outdated in slices 4-5).
 - Counter = open comments on working tree + unpushed SHAs; status bar item left, click focuses Comments view.
 - Clicking a comment opens its commit/working-tree diff with the range selected (selection applies to the new side).
+- Anchoring: `resolveComment(comment, env)` in `src/anchor/resolve.ts` (pure, env faked in tests); `src/anchoring.ts` runs it serialized: working-tree comments every run, commit comments only when HEAD moved (and at start).
+- Triggers: git state change or file save, debounced 300 ms. Re-anchoring refreshes the stored snippet/range; WT comment whose file is no longer changed moves to the newest unpushed commit that touches the file and still matches, else outdated.
+- Commit "vanished" = not reachable from any ref or HEAD. Rewritten commit = same author+subject in last 200 of HEAD, then unpushed commits; must touch the file and match the snippet. Old objects are read from git (no reflog needed).
+- Outdated = `outdated: true` on the stored comment (last known origin/range/snippet kept); retried on later runs, can become anchored again. Own last group "Outdated" in every mode; not counted in the status bar.
+- Outdated view: read-only `diff-notes-outdated:/<file>?id=` doc with the snippet; thread created on open; title button "Open Current Diff". Thread contextValue: open|resolved|outdated-open|outdated-resolved.
 
 ## Log
 - S1 built: scaffold, Commits view (working tree + unpushed commits + files), native diff, notes create/edit/reply/resolve/reopen, JSON in `.git/diff-notes/`, reload on start.
@@ -41,3 +46,6 @@
 - S3 built: Comments view (group by Commit/File/None via title button, Open-only toggle), click opens diff at the range, status bar counter; 5 tests.
 - S3 decided: comments on commits not in the unpushed list go in a temporary "not in unpushed list" group.
 - S3 open: not checked in a running VS Code (needs F5); old-side comments select the range on the new side only; Commits-view comment badges not done (not in this slice's task).
+- S4 built: re-anchoring on save/commit/amend/rebase/checkout; working-tree comments move to the commit they land in; Outdated group and read-only outdated view with reply/resolve/Open Current Diff; 9 tests.
+- S4 decided: outdated comments do not count in the status bar; "(not in unpushed list)" now only holds pushed commits until slice 5.
+- S4 open: not checked in a running VS Code (needs F5: edit a commented file, commit, amend, rebase -i); multi-commit landing picks the newest matching commit; "Open Current Diff" on a vanished commit relies on git still holding the object.

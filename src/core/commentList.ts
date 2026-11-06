@@ -1,11 +1,14 @@
 /** Filtering, ordering, grouping and counting for the Comments list. No vscode import. */
 import { StoredComment, WORKING_TREE } from './model';
 
+/** Key of the Outdated group. */
+export const OUTDATED_KEY = 'outdated';
+
 export type GroupMode = 'commit' | 'file' | 'none';
 
 export interface CommentGroup {
-  /** Working tree, a commit, a commit not in the unpushed list, or a file. */
-  kind: 'worktree' | 'commit' | 'other' | 'file';
+  /** Working tree, a commit, a commit not in the unpushed list, a file, or the Outdated group. */
+  kind: 'worktree' | 'commit' | 'other' | 'file' | 'outdated';
   /** Commit SHA, `working-tree`, or file path. */
   key: string;
   comments: StoredComment[];
@@ -15,10 +18,10 @@ export function filterComments(all: readonly StoredComment[], openOnly: boolean)
   return openOnly ? all.filter(c => c.status === 'open') : [...all];
 }
 
-/** Open comments on the working tree or on unpushed commits (the status bar number). */
+/** Open comments on the working tree or on unpushed commits (the status bar number). Outdated ones are not counted. */
 export function countOpenUnpushed(all: readonly StoredComment[], unpushedShas: readonly string[]): number {
   const unpushed = new Set(unpushedShas);
-  return all.filter(c => c.status === 'open' && (c.origin === WORKING_TREE || unpushed.has(c.origin))).length;
+  return all.filter(c => c.status === 'open' && !c.outdated && (c.origin === WORKING_TREE || unpushed.has(c.origin))).length;
 }
 
 /** Rank of an origin in the Commits list: working tree first, then unpushed commits in order, then the rest. */
@@ -44,13 +47,16 @@ export function sortComments(comments: readonly StoredComment[], order: readonly
 
 /**
  * Groups for the chosen mode. `order` = unpushed commit SHAs, newest first (the Commits list order).
- * Mode `none` returns no groups: use `sortComments` for the flat list.
+ * Outdated comments always form their own last group, in every mode.
+ * Mode `none` returns only that group: use `sortComments` on the rest for the flat list.
  */
 export function groupComments(comments: readonly StoredComment[], mode: GroupMode, order: readonly string[]): CommentGroup[] {
-  const sorted = sortComments(comments, order);
+  const outdated = comments.filter(c => c.outdated);
+  const sorted = sortComments(comments.filter(c => !c.outdated), order);
   const groups: CommentGroup[] = [];
+  const tail = (): CommentGroup[] => (outdated.length ? [...groups, { kind: 'outdated', key: OUTDATED_KEY, comments: sortComments(outdated, order) }] : groups);
   if (mode === 'none') {
-    return groups;
+    return tail();
   }
   const sortedForFile = mode === 'file' ? [...sorted].sort((a, b) => a.file.localeCompare(b.file) || originRank(a.origin, order) - originRank(b.origin, order) || a.startLine - b.startLine) : sorted;
   for (const c of sortedForFile) {
@@ -64,5 +70,5 @@ export function groupComments(comments: readonly StoredComment[], mode: GroupMod
     }
     g.comments.push(c);
   }
-  return groups;
+  return tail();
 }

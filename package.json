@@ -34,6 +34,7 @@
       { "command": "diffNotes.openOnly", "title": "Show Open Only", "category": "Diff Notes", "icon": "$(filter)" },
       { "command": "diffNotes.showAll", "title": "Show Resolved Too", "category": "Diff Notes", "icon": "$(filter-filled)" },
       { "command": "diffNotes.openComment", "title": "Open Comment", "category": "Diff Notes" },
+      { "command": "diffNotes.openCurrentDiff", "title": "Open Current Diff", "category": "Diff Notes", "icon": "$(diff)" },
       { "command": "diffNotes.refresh", "title": "Refresh", "category": "Diff Notes", "icon": "$(refresh)" },
       { "command": "diffNotes.openDiff", "title": "Open Diff", "category": "Diff Notes" },
       { "command": "diffNotes.createComment", "title": "Add Note", "category": "Diff Notes" },
@@ -58,8 +59,9 @@
         { "command": "diffNotes.reply", "when": "commentController == diffNotes && !commentThreadIsEmpty", "group": "inline@1" }
       ],
       "comments/commentThread/title": [
-        { "command": "diffNotes.resolve", "when": "commentController == diffNotes && commentThread == open", "group": "navigation" },
-        { "command": "diffNotes.reopen", "when": "commentController == diffNotes && commentThread == resolved", "group": "navigation" }
+        { "command": "diffNotes.resolve", "when": "commentController == diffNotes && commentThread =~ /open$/", "group": "navigation" },
+        { "command": "diffNotes.openCurrentDiff", "when": "commentController == diffNotes && commentThread =~ /^outdated/", "group": "navigation" },
+        { "command": "diffNotes.reopen", "when": "commentController == diffNotes && commentThread =~ /resolved$/", "group": "navigation" }
       ],
       "comments/comment/title": [
         { "command": "diffNotes.editComment", "when": "commentController == diffNotes && comment == editable", "group": "inline@1" }
@@ -71,6 +73,7 @@
       "commandPalette": [
         { "command": "diffNotes.openDiff", "when": "false" },
         { "command": "diffNotes.openComment", "when": "false" },
+        { "command": "diffNotes.openCurrentDiff", "when": "false" },
         { "command": "diffNotes.createComment", "when": "false" },
         { "command": "diffNotes.cancelDraft", "when": "false" },
         { "command": "diffNotes.reply", "when": "false" },

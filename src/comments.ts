@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { OUTDATED_SCHEME } from './core/diffRef';
 import { rangeLabel, StoredComment } from './core/model';
 import { extractSnippet, splitLines } from './core/snippet';
 import { CommentStore } from './core/store';
@@ -34,10 +35,27 @@ function bodyText(body: string | vscode.MarkdownString): string {
 }
 
 /** Bridges stored comments and native Comment API threads on `diff-notes:` diff documents. */
+/** URI of the read-only outdated view of a comment (its stored snippet). */
+export function outdatedUri(c: StoredComment): vscode.Uri {
+  return vscode.Uri.from({ scheme: OUTDATED_SCHEME, path: '/' + c.file, query: new URLSearchParams({ id: c.id }).toString() });
+}
+
+/** Serves the stored snippet (context + commented lines) of an outdated comment. */
+export class OutdatedContentProvider implements vscode.TextDocumentContentProvider {
+  constructor(private readonly store: CommentStore) {}
+
+  provideTextDocumentContent(uri: vscode.Uri): string {
+    const c = this.store.get(new URLSearchParams(uri.query).get('id') ?? '');
+    return c ? [...c.snippet.before, ...c.snippet.lines, ...c.snippet.after].join(String.fromCharCode(10)) : '';
+  }
+}
+
 export class NotesController implements vscode.Disposable {
   private readonly controller = vscode.comments.createCommentController('diffNotes', 'Diff Notes');
   private readonly threads = new Map<string, vscode.CommentThread>();
   private readonly threadIds = new WeakMap<vscode.CommentThread, string>();
+  /** Ids whose thread sits on the outdated view rather than a live diff. */
+  private readonly outdatedIds = new Set<string>();
 
   constructor(
     private readonly store: CommentStore,
@@ -54,11 +72,67 @@ export class NotesController implements vscode.Disposable {
   /** Recreate threads for every stored comment (on start). */
   restoreAll(): void {
     for (const c of this.store.all()) {
-      const uri = diffUri({ file: c.file, origin: c.origin, side: c.side });
-      const thread = this.controller.createCommentThread(uri, new vscode.Range(c.startLine - 1, 0, c.endLine - 1, 0), []);
+      this.sync(c);
+    }
+  }
+
+  /**
+   * Make the live thread match the stored comment after its anchor changed:
+   * move it, move it to another diff (new origin), or drop it when outdated
+   * (outdated comments get a thread only while their outdated view is open).
+   */
+  sync(c: StoredComment): void {
+    const old = this.threads.get(c.id);
+    if (c.outdated) {
+      if (old && !this.outdatedIds.has(c.id)) {
+        this.drop(c.id);
+      } else if (old) {
+        this.render(old, c);
+      }
+      return;
+    }
+    if (old && this.outdatedIds.has(c.id)) {
+      this.drop(c.id);
+    }
+    const uri = diffUri({ file: c.file, origin: c.origin, side: c.side });
+    const range = new vscode.Range(c.startLine - 1, 0, c.endLine - 1, 0);
+    const live = this.threads.get(c.id);
+    if (live && live.uri.toString() === uri.toString()) {
+      live.range = range;
+      this.render(live, c);
+      return;
+    }
+    if (live) {
+      this.drop(c.id);
+    }
+    const thread = this.controller.createCommentThread(uri, range, []);
+    this.bind(thread, c.id);
+    this.render(thread, c);
+  }
+
+  /** Thread on the read-only outdated view of `c` (created on first open). Returns the document URI and range to show. */
+  openOutdatedThread(c: StoredComment): { uri: vscode.Uri; range: vscode.Range } {
+    const uri = outdatedUri(c);
+    const first = c.snippet.before.length;
+    const range = new vscode.Range(first, 0, first + Math.max(0, c.snippet.lines.length - 1), 0);
+    if (!this.threads.has(c.id)) {
+      const thread = this.controller.createCommentThread(uri, range, []);
+      this.outdatedIds.add(c.id);
       this.bind(thread, c.id);
       this.render(thread, c);
     }
+    return { uri, range };
+  }
+
+  /** Id of the stored comment behind a thread. */
+  idOf(thread: vscode.CommentThread): string | undefined {
+    return this.threadIds.get(thread);
+  }
+
+  private drop(id: string): void {
+    this.threads.get(id)?.dispose();
+    this.threads.delete(id);
+    this.outdatedIds.delete(id);
   }
 
   async create(reply: vscode.CommentReply): Promise<void> {
@@ -153,8 +227,8 @@ export class NotesController implements vscode.Disposable {
       new NoteComment(c.id, c.id, c.body, c.author, c.createdAt, c.editedAt),
       ...c.replies.map(r => new NoteComment(r.id, c.id, r.body, r.author, r.createdAt, r.editedAt)),
     ];
-    thread.label = rangeLabel(c);
-    thread.contextValue = c.status;
+    thread.label = c.outdated ? `Outdated · ${rangeLabel(c)}` : rangeLabel(c);
+    thread.contextValue = c.outdated ? `outdated-${c.status}` : c.status;
     thread.state = c.status === 'resolved' ? vscode.CommentThreadState.Resolved : vscode.CommentThreadState.Unresolved;
     thread.canReply = true;
     // Resolved notes are hidden (collapsed), never deleted.

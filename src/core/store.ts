@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { NotesFile, Reply, SCHEMA_VERSION, Status, StoredComment } from './model';
+import { Anchor, NotesFile, Reply, SCHEMA_VERSION, Status, StoredComment } from './model';
 
 export type NewComment = Omit<StoredComment, 'id' | 'createdAt' | 'replies' | 'status'>;
 
@@ -76,6 +76,29 @@ export class CommentStore {
     const c = this.require(commentId);
     c.status = status;
     return c;
+  }
+
+  /** Apply a re-anchoring result. Returns true if anything changed. */
+  setAnchor(id: string, a: Anchor): boolean {
+    const c = this.require(id);
+    if (a.outdated) {
+      if (c.outdated) {
+        return false;
+      }
+      c.outdated = true;
+      return true;
+    }
+    const same =
+      !c.outdated && c.origin === a.origin && c.startLine === a.startLine && c.endLine === a.endLine && JSON.stringify(c.snippet) === JSON.stringify(a.snippet);
+    if (same) {
+      return false;
+    }
+    delete c.outdated;
+    c.origin = a.origin;
+    c.startLine = a.startLine;
+    c.endLine = a.endLine;
+    c.snippet = a.snippet;
+    return true;
   }
 
   private require(id: string): StoredComment {

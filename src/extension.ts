@@ -1,14 +1,15 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { NotesController } from './comments';
+import { Anchoring } from './anchoring';
+import { NotesController, OutdatedContentProvider } from './comments';
 import { CommentsProvider, GROUP_LABELS } from './commentsView';
 import { CommitsProvider } from './commitsView';
 import { DiffContentProvider } from './contentProvider';
-import { SCHEME } from './core/diffRef';
+import { OUTDATED_SCHEME, SCHEME } from './core/diffRef';
 import { countOpenUnpushed, GroupMode } from './core/commentList';
 import { ChangedFile } from './core/gitParse';
 import { CommentStore } from './core/store';
-import { WORKING_TREE } from './core/model';
+import { StoredComment, WORKING_TREE } from './core/model';
 import { diffUri } from './diffUri';
 import { GitService } from './git';
 import { API, GitExtension, Repository } from './gitApi';
@@ -70,8 +71,19 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
 
   const content = new DiffContentProvider(git);
   const notes = new NotesController(store, git, persist);
-  ctx.subscriptions.push(content, notes, vscode.workspace.registerTextDocumentContentProvider(SCHEME, content));
+  ctx.subscriptions.push(
+    content,
+    notes,
+    vscode.workspace.registerTextDocumentContentProvider(SCHEME, content),
+    vscode.workspace.registerTextDocumentContentProvider(OUTDATED_SCHEME, new OutdatedContentProvider(store)),
+  );
   notes.restoreAll();
+  const anchoring = new Anchoring(store, git, async changed => {
+    changed.forEach(c => notes.sync(c));
+    content.refreshWorkingTree();
+    await persist();
+  });
+  void anchoring.run();
   commits.setGit(git);
   commentsView.setGit(git);
   const setCtx = (): unknown => vscode.commands.executeCommand('setContext', 'diffNotes.openOnly', commentsView.openOnly);
@@ -81,17 +93,16 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
   ctx.subscriptions.push(commentsView, bar, vscode.window.createTreeView('diffNotes.comments', { treeDataProvider: commentsView }));
 
   let timer: NodeJS.Timeout | undefined;
-  ctx.subscriptions.push(
-    git.onDidChange(() => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        commits.refresh();
-        refreshComments();
-        content.refreshWorkingTree();
-      }, 300);
-    }),
-    { dispose: () => clearTimeout(timer) },
-  );
+  const schedule = (): void => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      commits.refresh();
+      refreshComments();
+      content.refreshWorkingTree();
+      void anchoring.run();
+    }, 300);
+  };
+  ctx.subscriptions.push(git.onDidChange(schedule), vscode.workspace.onDidSaveTextDocument(schedule), { dispose: () => clearTimeout(timer) });
 
   const reg = (id: string, fn: (...args: any[]) => unknown) => ctx.subscriptions.push(vscode.commands.registerCommand(id, fn));
   reg('diffNotes.refresh', () => commits.refresh());
@@ -122,24 +133,37 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
       commentsView.refresh();
     }
   });
-  reg('diffNotes.openComment', async (id: string) => {
-    const c = store.get(id);
-    if (!c) {
-      return;
-    }
+  const openDiffFor = async (c: StoredComment, select: boolean): Promise<void> => {
     const files = c.origin === WORKING_TREE ? git.workingTreeFiles() : await git.commitFiles(c.origin).catch(() => []);
     const f = files.find(x => (c.side === 'new' ? x.path : (x.oldPath ?? x.path)) === c.file);
     const newPath = c.side === 'new' ? c.file : (f?.path ?? c.file);
     const oldPath = c.side === 'old' ? c.file : (f?.oldPath ?? c.file);
     const label = c.origin === WORKING_TREE ? 'Working Tree' : c.origin.slice(0, 7);
-    const range = new vscode.Range(c.startLine - 1, 0, c.endLine - 1, 0);
     await vscode.commands.executeCommand(
       'vscode.diff',
       diffUri({ file: oldPath, origin: c.origin, side: 'old' }),
       diffUri({ file: newPath, origin: c.origin, side: 'new' }),
       `${path.posix.basename(newPath)} (${label})`,
-      { selection: range },
+      select ? { selection: new vscode.Range(c.startLine - 1, 0, c.endLine - 1, 0) } : undefined,
     );
+  };
+  reg('diffNotes.openComment', async (id: string) => {
+    const c = store.get(id);
+    if (!c) {
+      return;
+    }
+    if (c.outdated) {
+      const { uri, range } = notes.openOutdatedThread(c);
+      await vscode.window.showTextDocument(uri, { selection: range, preview: true });
+      return;
+    }
+    await openDiffFor(c, true);
+  });
+  reg('diffNotes.openCurrentDiff', async (t: vscode.CommentThread) => {
+    const c = store.get(notes.idOf(t) ?? '');
+    if (c) {
+      await openDiffFor(c, false);
+    }
   });
   reg('diffNotes.createComment', (r: vscode.CommentReply) => notes.create(r));
   reg('diffNotes.reply', (r: vscode.CommentReply) => notes.reply(r));

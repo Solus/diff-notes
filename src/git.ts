@@ -8,6 +8,7 @@ import { ChangedFile, CommitInfo, LOG_FORMAT, mergeWorkingChanges, parseLog, par
 import { API, Change, Repository } from './gitApi';
 
 const MAX_COMMITS = 200;
+const SEP = String.fromCharCode(0x1f);
 
 /** Repo access: vscode.git for state/content, `git` CLI for commit lists and commit diffs. */
 export class GitService {
@@ -41,6 +42,50 @@ export class GitService {
     } catch {
       return [];
     }
+  }
+
+  /** SHA of HEAD, if any. */
+  get headSha(): string | undefined {
+    return this.repo.state.HEAD?.commit;
+  }
+
+  /** True while the commit is still reachable from a branch/tag/remote or HEAD (false once amended/rebased away). */
+  async commitAlive(sha: string): Promise<boolean> {
+    try {
+      if ((await this.run(['for-each-ref', '--contains', sha, '--count=1', 'refs/'])).trim()) {
+        return true;
+      }
+      await this.run(['merge-base', '--is-ancestor', sha, 'HEAD']);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Commits a vanished commit may have been rewritten into: same author and subject in recent history first,
+   * then the unpushed commits. Empty if the old commit object is gone too.
+   */
+  async rewriteCandidates(sha: string): Promise<string[]> {
+    const out: string[] = [];
+    try {
+      const [author, subject] = (await this.run(['log', '-1', '--format=%an%x1f%s', sha])).trimEnd().split(SEP);
+      const history = await this.run(['log', `-n${MAX_COMMITS}`, '--format=%H%x1f%an%x1f%s', 'HEAD']);
+      for (const line of history.split(/\r?\n/)) {
+        const [h, a, s] = line.split(SEP);
+        if (h && a === author && s === subject) {
+          out.push(h);
+        }
+      }
+    } catch {
+      // old commit unreadable: fall back to the unpushed list only
+    }
+    for (const c of await this.unpushedCommits()) {
+      if (!out.includes(c.sha)) {
+        out.push(c.sha);
+      }
+    }
+    return out.filter(x => x !== sha);
   }
 
   /** Files changed by a commit, against its first parent (or empty tree for a root commit). */

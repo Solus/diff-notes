@@ -40,7 +40,14 @@ export interface StoredComment {
   snippet: Snippet;
   /** Commit SHA, or `working-tree`. */
   origin: string;
+  /** Set when the snippet can no longer be found; range/origin/snippet then describe the last known place. */
+  outdated?: boolean;
 }
+
+/** Where a comment lives now (result of re-anchoring). */
+export type Anchor =
+  | { outdated: false; origin: string; startLine: number; endLine: number; snippet: Snippet }
+  | { outdated: true };
 
 export const SCHEMA_VERSION = 1;
 

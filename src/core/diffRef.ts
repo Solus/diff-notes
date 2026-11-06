@@ -3,6 +3,9 @@ import { Side, WORKING_TREE } from './model';
 /** URI scheme of the read-only diff documents comments attach to. */
 export const SCHEME = 'diff-notes';
 
+/** URI scheme of the read-only outdated-snippet documents. */
+export const OUTDATED_SCHEME = 'diff-notes-outdated';
+
 export interface DiffSide {
   origin: string;
   side: Side;
