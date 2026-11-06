@@ -21,13 +21,19 @@
     },
     "views": {
       "diffNotes": [
-        { "id": "diffNotes.commits", "name": "Commits" }
+        { "id": "diffNotes.commits", "name": "Commits" },
+        { "id": "diffNotes.comments", "name": "Comments" }
       ]
     },
     "viewsWelcome": [
-      { "view": "diffNotes.commits", "contents": "No Git repository found in this workspace." }
+      { "view": "diffNotes.commits", "contents": "No Git repository found in this workspace." },
+      { "view": "diffNotes.comments", "contents": "No Git repository found in this workspace.", "when": "!gitOpenRepositoryCount" }
     ],
     "commands": [
+      { "command": "diffNotes.groupBy", "title": "Group By...", "category": "Diff Notes", "icon": "$(list-tree)" },
+      { "command": "diffNotes.openOnly", "title": "Show Open Only", "category": "Diff Notes", "icon": "$(filter)" },
+      { "command": "diffNotes.showAll", "title": "Show Resolved Too", "category": "Diff Notes", "icon": "$(filter-filled)" },
+      { "command": "diffNotes.openComment", "title": "Open Comment", "category": "Diff Notes" },
       { "command": "diffNotes.refresh", "title": "Refresh", "category": "Diff Notes", "icon": "$(refresh)" },
       { "command": "diffNotes.openDiff", "title": "Open Diff", "category": "Diff Notes" },
       { "command": "diffNotes.createComment", "title": "Add Note", "category": "Diff Notes" },
@@ -41,6 +47,9 @@
     ],
     "menus": {
       "view/title": [
+        { "command": "diffNotes.groupBy", "when": "view == diffNotes.comments", "group": "navigation@1" },
+        { "command": "diffNotes.showAll", "when": "view == diffNotes.comments && diffNotes.openOnly", "group": "navigation@2" },
+        { "command": "diffNotes.openOnly", "when": "view == diffNotes.comments && !diffNotes.openOnly", "group": "navigation@2" },
         { "command": "diffNotes.refresh", "when": "view == diffNotes.commits", "group": "navigation" }
       ],
       "comments/commentThread/context": [
@@ -61,6 +70,7 @@
       ],
       "commandPalette": [
         { "command": "diffNotes.openDiff", "when": "false" },
+        { "command": "diffNotes.openComment", "when": "false" },
         { "command": "diffNotes.createComment", "when": "false" },
         { "command": "diffNotes.cancelDraft", "when": "false" },
         { "command": "diffNotes.reply", "when": "false" },
