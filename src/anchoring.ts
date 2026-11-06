@@ -4,7 +4,22 @@ import { Side, StoredComment, WORKING_TREE } from './core/model';
 import { CommentStore } from './core/store';
 import { GitService } from './git';
 
-const fileMatches = (f: ChangedFile, side: Side, file: string): boolean => (side === 'new' ? f.path : (f.oldPath ?? f.path)) === file;
+/** Path of `file` on `side` after the change `f`: same path, or the new name when `f` renames it; undefined if `f` is another file. */
+const pathAfter = (f: ChangedFile, side: Side, file: string): string | undefined => {
+  if (side === 'new') {
+    return f.path === file ? file : f.status === 'R' && f.oldPath === file ? f.path : undefined;
+  }
+  return (f.oldPath ?? f.path) === file ? file : undefined;
+};
+const findPath = (files: ChangedFile[], side: Side, file: string): string | undefined => {
+  for (const f of files) {
+    const p = pathAfter(f, side, file);
+    if (p !== undefined) {
+      return p;
+    }
+  }
+  return undefined;
+};
 
 /**
  * Re-anchors stored comments against the repo: working-tree comments on every run,
@@ -75,13 +90,13 @@ export class Anchoring {
     const wt = git.workingTreeFiles();
     return {
       readSide: (origin, side, file) => git.readSide(file, { origin, side }),
-      workingTreeChanged: (file, side) => wt.some(f => fileMatches(f, side, file)),
+      workingTreePath: (file, side) => findPath(wt, side, file),
       commitAlive: sha => alive.get(sha) ?? alive.set(sha, git.commitAlive(sha)).get(sha)!,
       rewriteCandidates: sha => git.rewriteCandidates(sha),
       landingCandidates: async () => (await git.unpushedCommits()).map(c => c.sha),
-      commitTouches: async (sha, side, file) => {
+      commitPath: async (sha, side, file) => {
         const list = files.get(sha) ?? files.set(sha, git.commitFiles(sha).catch(() => [])).get(sha)!;
-        return (await list).some(f => fileMatches(f, side, file));
+        return findPath(await list, side, file);
       },
     };
   }

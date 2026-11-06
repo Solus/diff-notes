@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { ChangedFile, CommitInfo } from './core/gitParse';
 import { WORKING_TREE } from './core/model';
+import { CommentStore } from './core/store';
 import { GitService } from './git';
 
 type Node =
@@ -23,6 +24,21 @@ export class CommitsProvider implements vscode.TreeDataProvider<Node> {
   private readonly changed = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this.changed.event;
   private git: GitService | undefined;
+
+  private store: CommentStore | undefined;
+
+  setStore(store: CommentStore): void {
+    this.store = store;
+  }
+
+  /** Open, non-outdated comments on a commit / the working tree, optionally for one file. */
+  private openCount(origin: string, f?: ChangedFile): number {
+    return (this.store?.all() ?? []).filter(c => c.origin === origin && !c.outdated && c.status === 'open' && (!f || c.file === (c.side === 'new' ? f.path : (f.oldPath ?? f.path)))).length;
+  }
+
+  private badge(n: number): string {
+    return n > 0 ? ` · ${n} open note${n === 1 ? '' : 's'}` : '';
+  }
 
   setGit(git: GitService): void {
     this.git = git;
@@ -57,7 +73,7 @@ export class CommitsProvider implements vscode.TreeDataProvider<Node> {
       case 'worktree': {
         const n = this.git?.workingTreeFiles().length ?? 0;
         const item = new vscode.TreeItem('Working tree', vscode.TreeItemCollapsibleState.Expanded);
-        item.description = n === 0 ? 'no changes' : `${n} file${n === 1 ? '' : 's'}`;
+        item.description = (n === 0 ? 'no changes' : `${n} file${n === 1 ? '' : 's'}`) + this.badge(this.openCount(WORKING_TREE));
         item.iconPath = new vscode.ThemeIcon('edit');
         item.contextValue = 'worktree';
         return item;
@@ -65,7 +81,7 @@ export class CommitsProvider implements vscode.TreeDataProvider<Node> {
       case 'commit': {
         const c = node.commit;
         const item = new vscode.TreeItem(c.subject, vscode.TreeItemCollapsibleState.Collapsed);
-        item.description = c.shortSha;
+        item.description = c.shortSha + this.badge(this.openCount(c.sha));
         item.tooltip = `${c.shortSha} · ${c.author} · ${new Date(c.date).toLocaleString()}\n\n${c.subject}`;
         item.iconPath = new vscode.ThemeIcon('git-commit');
         item.contextValue = 'commit';
@@ -75,7 +91,7 @@ export class CommitsProvider implements vscode.TreeDataProvider<Node> {
         const f = node.file;
         const item = new vscode.TreeItem(path.posix.basename(f.path), vscode.TreeItemCollapsibleState.None);
         const dir = path.posix.dirname(f.path);
-        item.description = `${dir === '.' ? '' : dir + ' · '}${f.status}`;
+        item.description = `${dir === '.' ? '' : dir + ' · '}${f.status}${this.badge(this.openCount(node.origin, f))}`;
         item.tooltip = `${f.oldPath ? `${f.oldPath} → ` : ''}${f.path} · ${STATUS_TEXT[f.status]}`;
         if (this.git) {
           item.resourceUri = vscode.Uri.file(this.git.abs(f.path));

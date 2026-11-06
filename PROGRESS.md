@@ -9,7 +9,7 @@
 - [x] 4 Wire anchoring (SPEC §4, §5 outdated view): re-anchor on edit, commit, amend, rebase; Outdated group; native read-only outdated view. STOP.
 - [x] 5 Pushed (SPEC §6): PUSHED separator and group, excluded from counter.
 - [x] 6 Pre-push hook (SPEC §6): opt-in setting, chains existing hooks.
-- [ ] 7 Polish (SPEC §9): remembered grouping, renames and deletions, remaining open details.
+- [x] 7 Polish (SPEC §9): remembered grouping, renames and deletions, remaining open details.
 
 ## Decisions
 - F5 opens `sandbox/` (throwaway repo from `npm run sandbox`; `sandbox:reset` recreates; both gitignored with `sandbox-remote.git`).
@@ -39,6 +39,9 @@
 - Pre-push hook: setting `diffNotes.prePushHook` (default off) installs/removes `<hooksdir>/pre-push` (hooks dir from `git rev-parse --git-path hooks`, so Husky's core.hooksPath is honoured). Script/plan in `src/core/hook.ts`, file work in `src/hook.ts`.
 - Hook reads plain `<gitdir>/diff-notes/open.txt` (`sha<TAB>file<TAB>line<TAB>text`, open non-outdated commit comments), rewritten on every save and on enabling; no node/JSON at push time. Pushed commits = `remote_sha..local_sha` (new branch: `--not --remotes=<remote>`).
 - Chaining: a foreign pre-push is moved to `pre-push.diff-notes-chained` and run first with the same args/stdin (its failure blocks); turning the setting off deletes ours and restores it. Prompt reads `/dev/tty`; with no terminal it prints the list and allows the push.
+- Group-by choice is saved in workspaceState (`diffNotes.groupBy`); Open-only stays on at start (SPEC: on by default).
+- Renames: a comment on a renamed file follows it (new side only; working tree and landing/rewritten commits) and its stored `file` is updated. Deleted files: new-side comments go outdated; old-side comments on a commit stay.
+- Commits view shows ` · N open notes` on working tree, commit and file rows (open, non-outdated only).
 
 ## Log
 - S1 built: scaffold, Commits view (working tree + unpushed commits + files), native diff, notes create/edit/reply/resolve/reopen, JSON in `.git/diff-notes/`, reload on start.
@@ -59,3 +62,6 @@
 - S6 built: opt-in `diffNotes.prePushHook` setting; hook lists open comments on pushed commits and asks `Push anyway? [y/N]`; chains existing hooks; 5 tests incl. real git push with Git for Windows sh.
 - S6 decided: no terminal (e.g. push from an IDE) = list printed, push allowed; summary file keeps the hook free of JSON parsing.
 - S6 open: not checked in a running VS Code (needs F5 on sandbox: enable setting, comment on a commit, `git push` in a terminal); if Husky regenerates its hooks dir (`.husky/_`) our hook is overwritten until the extension next starts; the y/N answer path was tested via a faked tty file, not a real console.
+- S7 built: remembered Group-by per workspace; comments follow file renames; Commits view note counts (SPEC §5 badges); 2 tests added.
+- S7 decided: rename following covers the new side only; SPEC §9 counter question settled (working tree counts).
+- S7 open: not checked in a running VS Code (F5: rename a commented file and commit; reload and see Group-by kept); multi-repo still first repo only; working-tree diff still not editable in place; old-side comments on a renamed file are not re-pathed.

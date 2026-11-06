@@ -46,7 +46,7 @@ export interface StoredComment {
 
 /** Where a comment lives now (result of re-anchoring). */
 export type Anchor =
-  | { outdated: false; origin: string; startLine: number; endLine: number; snippet: Snippet }
+  | { outdated: false; origin: string; file: string; startLine: number; endLine: number; snippet: Snippet }
   | { outdated: true };
 
 export const SCHEMA_VERSION = 1;

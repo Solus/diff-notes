@@ -15,11 +15,11 @@ function mk(origin: string, side: Side = 'new'): StoredComment {
 function env(p: Partial<AnchorEnv> & { files?: Record<string, string[]> }): AnchorEnv {
   return {
     readSide: async (o) => (p.files?.[o] ?? []).join('\n'),
-    workingTreeChanged: () => true,
+    workingTreePath: (f) => f,
     commitAlive: async () => true,
     rewriteCandidates: async () => [],
     landingCandidates: async () => [],
-    commitTouches: async () => true,
+    commitPath: async (_s, _d, f) => f,
     ...p,
   };
 }
@@ -35,19 +35,19 @@ test('working tree comment becomes outdated when its lines change', async () => 
 });
 
 test('committed working tree comment moves to the commit it landed in', async () => {
-  const e = env({ workingTreeChanged: () => false, landingCandidates: async () => ['new', 'old'], commitTouches: async (s) => s === 'old', files: { old: ['z', ...base], new: base } });
+  const e = env({ workingTreePath: () => undefined, landingCandidates: async () => ['new', 'old'], commitPath: async (s, _d, f) => (s === 'old' ? f : undefined), files: { old: ['z', ...base], new: base } });
   const a = await resolveComment(mk(WORKING_TREE), e);
   assert.deepEqual(a.outdated === false && [a.origin, a.startLine], ['old', 6]);
 });
 
 test('working tree comment with discarded changes is outdated', async () => {
-  const a = await resolveComment(mk(WORKING_TREE), env({ workingTreeChanged: () => false }));
+  const a = await resolveComment(mk(WORKING_TREE), env({ workingTreePath: () => undefined }));
   assert.deepEqual(a, { outdated: true });
 });
 
 test('commit comment stays put while the commit exists', async () => {
   const c = mk('abc');
-  assert.deepEqual(await resolveComment(c, env({})), { outdated: false, origin: 'abc', startLine: 5, endLine: 7, snippet: c.snippet });
+  assert.deepEqual(await resolveComment(c, env({})), { outdated: false, origin: 'abc', file: 'f.ts', startLine: 5, endLine: 7, snippet: c.snippet });
 });
 
 test('amended commit: comment moves to the rewritten commit', async () => {
@@ -62,14 +62,25 @@ test('rewritten commit that lost the code, or no candidate: outdated', async () 
   assert.deepEqual(await resolveComment(mk('abc'), env({ commitAlive: async () => false })), { outdated: true });
 });
 
+test('renamed file: comment follows it into the commit it landed in', async () => {
+  const e = env({ workingTreePath: () => undefined, landingCandidates: async () => ['r'], commitPath: async () => 'g.ts', files: { r: base } });
+  const a = await resolveComment(mk(WORKING_TREE), e);
+  assert.deepEqual(a.outdated === false && [a.origin, a.file, a.startLine], ['r', 'g.ts', 5]);
+});
+
+test('uncommitted rename: working tree comment follows the new path', async () => {
+  const a = await resolveComment(mk(WORKING_TREE), env({ workingTreePath: () => 'g.ts', files: { [WORKING_TREE]: base } }));
+  assert.deepEqual(a.outdated === false && [a.file, a.startLine], ['g.ts', 5]);
+});
+
 test('store.setAnchor reports changes and clears outdated', () => {
   const s = new CommentStore();
   const c = s.add({ ...mk('abc'), id: undefined } as never);
   assert.equal(s.setAnchor(c.id, { outdated: true }), true);
   assert.equal(s.setAnchor(c.id, { outdated: true }), false);
-  assert.equal(s.setAnchor(c.id, { outdated: false, origin: 'abc', startLine: 5, endLine: 7, snippet: c.snippet }), true);
+  assert.equal(s.setAnchor(c.id, { outdated: false, origin: 'abc', file: 'f.ts', startLine: 5, endLine: 7, snippet: c.snippet }), true);
   assert.equal(c.outdated, undefined);
-  assert.equal(s.setAnchor(c.id, { outdated: false, origin: 'abc', startLine: 5, endLine: 7, snippet: c.snippet }), false);
+  assert.equal(s.setAnchor(c.id, { outdated: false, origin: 'abc', file: 'f.ts', startLine: 5, endLine: 7, snippet: c.snippet }), false);
 });
 
 test('outdated comments get their own last group in every mode and are not counted', () => {

@@ -89,12 +89,13 @@ export class CommentStore {
       return true;
     }
     const same =
-      !c.outdated && c.origin === a.origin && c.startLine === a.startLine && c.endLine === a.endLine && JSON.stringify(c.snippet) === JSON.stringify(a.snippet);
+      !c.outdated && c.origin === a.origin && c.file === a.file && c.startLine === a.startLine && c.endLine === a.endLine && JSON.stringify(c.snippet) === JSON.stringify(a.snippet);
     if (same) {
       return false;
     }
     delete c.outdated;
     c.origin = a.origin;
+    c.file = a.file;
     c.startLine = a.startLine;
     c.endLine = a.endLine;
     c.snippet = a.snippet;

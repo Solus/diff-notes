@@ -16,6 +16,8 @@ import { HookManager } from './hook';
 import { API, GitExtension, Repository } from './gitApi';
 import { NotesFileIO, resolveGitDir } from './storage';
 
+const GROUP_KEY = 'diffNotes.groupBy';
+
 export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
   const commits = new CommitsProvider();
   ctx.subscriptions.push(commits, vscode.window.registerTreeDataProvider('diffNotes.commits', commits));
@@ -46,7 +48,12 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     canSave = false; // never overwrite a file we couldn't read
     void vscode.window.showErrorMessage(`Diff Notes: could not read ${io.file} (${(e as Error).message}). Notes will not be saved this session.`);
   }
+  commits.setStore(store);
   const commentsView = new CommentsProvider(store);
+  const savedMode = ctx.workspaceState.get<string>(GROUP_KEY);
+  if (savedMode && savedMode in GROUP_LABELS) {
+    commentsView.mode = savedMode as GroupMode; // remembered per workspace
+  }
   const bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
   bar.command = 'diffNotes.comments.focus';
   const updateBar = async (): Promise<void> => {
@@ -56,6 +63,7 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
   };
   const refreshComments = (): void => {
     commentsView.refresh();
+    commits.refresh();
     void updateBar();
   };
   const gitDir = await resolveGitDir(git.root);
@@ -159,6 +167,7 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     const pick = await vscode.window.showQuickPick(items, { title: 'Group comments by' });
     if (pick) {
       commentsView.mode = pick.mode;
+      void ctx.workspaceState.update(GROUP_KEY, pick.mode);
       commentsView.refresh();
     }
   });
