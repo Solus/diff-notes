@@ -12,6 +12,7 @@ import { CommentStore } from './core/store';
 import { StoredComment, WORKING_TREE } from './core/model';
 import { diffUri } from './diffUri';
 import { GitService } from './git';
+import { HookManager } from './hook';
 import { API, GitExtension, Repository } from './gitApi';
 import { NotesFileIO, resolveGitDir } from './storage';
 
@@ -57,6 +58,9 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     commentsView.refresh();
     void updateBar();
   };
+  const gitDir = await resolveGitDir(git.root);
+  const hook = new HookManager(await git.hooksDir().catch(() => path.join(gitDir, 'hooks')), gitDir);
+  const writeSummary = (): Promise<void> => hook.writeSummary(store.all()).catch(() => undefined);
   const persist = async (): Promise<void> => {
     refreshComments();
     if (!canSave) {
@@ -64,10 +68,35 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     }
     try {
       await io.write(store.serialize());
+      await writeSummary();
     } catch (e) {
       void vscode.window.showErrorMessage(`Diff Notes: could not save notes (${(e as Error).message}).`);
     }
   };
+
+  const applyHookSetting = async (): Promise<void> => {
+    const on = vscode.workspace.getConfiguration('diffNotes').get<boolean>('prePushHook', false);
+    try {
+      if (on) {
+        await writeSummary();
+        if ((await hook.install()) === 'chained') {
+          void vscode.window.showInformationMessage('Diff Notes: your existing pre-push hook was kept and will run first.');
+        }
+      } else {
+        await hook.uninstall();
+      }
+    } catch (e) {
+      void vscode.window.showErrorMessage(`Diff Notes: could not update the pre-push hook (${(e as Error).message}).`);
+    }
+  };
+  void applyHookSetting();
+  ctx.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('diffNotes.prePushHook')) {
+        void applyHookSetting();
+      }
+    }),
+  );
 
   const content = new DiffContentProvider(git);
   const notes = new NotesController(store, git, persist);

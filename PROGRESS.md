@@ -8,7 +8,7 @@
 - [x] 3 Comments list (SPEC §5 without outdated view, §6 counter): Comments TreeView, group by commit/file/none, Open-only filter, status bar counter. STOP.
 - [x] 4 Wire anchoring (SPEC §4, §5 outdated view): re-anchor on edit, commit, amend, rebase; Outdated group; native read-only outdated view. STOP.
 - [x] 5 Pushed (SPEC §6): PUSHED separator and group, excluded from counter.
-- [ ] 6 Pre-push hook (SPEC §6): opt-in setting, chains existing hooks.
+- [x] 6 Pre-push hook (SPEC §6): opt-in setting, chains existing hooks.
 - [ ] 7 Polish (SPEC §9): remembered grouping, renames and deletions, remaining open details.
 
 ## Decisions
@@ -36,6 +36,9 @@
 - Outdated = `outdated: true` on the stored comment (last known origin/range/snippet kept); retried on later runs, can become anchored again. Own last group "Outdated" in every mode; not counted in the status bar.
 - Outdated view: read-only `diff-notes-outdated:/<file>?id=` doc with the snippet; thread created on open; title button "Open Current Diff". Thread contextValue: open|resolved|outdated-open|outdated-resolved.
 - PUSHED group (`kind 'pushed'`) = non-outdated comments on a commit not in the unpushed list; own group in every mode, placed before Outdated, shows commit per row; not counted.
+- Pre-push hook: setting `diffNotes.prePushHook` (default off) installs/removes `<hooksdir>/pre-push` (hooks dir from `git rev-parse --git-path hooks`, so Husky's core.hooksPath is honoured). Script/plan in `src/core/hook.ts`, file work in `src/hook.ts`.
+- Hook reads plain `<gitdir>/diff-notes/open.txt` (`sha<TAB>file<TAB>line<TAB>text`, open non-outdated commit comments), rewritten on every save and on enabling; no node/JSON at push time. Pushed commits = `remote_sha..local_sha` (new branch: `--not --remotes=<remote>`).
+- Chaining: a foreign pre-push is moved to `pre-push.diff-notes-chained` and run first with the same args/stdin (its failure blocks); turning the setting off deletes ours and restores it. Prompt reads `/dev/tty`; with no terminal it prints the list and allows the push.
 
 ## Log
 - S1 built: scaffold, Commits view (working tree + unpushed commits + files), native diff, notes create/edit/reply/resolve/reopen, JSON in `.git/diff-notes/`, reload on start.
@@ -53,3 +56,6 @@
 - S5 built: PUSHED group replaces "(not in unpushed list)" in all group modes (before Outdated); excluded from counter; 2 tests changed/added.
 - S5 decided: pushed comments stay in the PUSHED group even in File mode (not mixed into file groups).
 - S5 open: not checked in a running VS Code (needs F5: commit with a note, `git push` in sandbox, see it move to PUSHED and counter drop).
+- S6 built: opt-in `diffNotes.prePushHook` setting; hook lists open comments on pushed commits and asks `Push anyway? [y/N]`; chains existing hooks; 5 tests incl. real git push with Git for Windows sh.
+- S6 decided: no terminal (e.g. push from an IDE) = list printed, push allowed; summary file keeps the hook free of JSON parsing.
+- S6 open: not checked in a running VS Code (needs F5 on sandbox: enable setting, comment on a commit, `git push` in a terminal); if Husky regenerates its hooks dir (`.husky/_`) our hook is overwritten until the extension next starts; the y/N answer path was tested via a faked tty file, not a real console.

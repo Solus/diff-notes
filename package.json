@@ -29,6 +29,16 @@
       { "view": "diffNotes.commits", "contents": "No Git repository found in this workspace." },
       { "view": "diffNotes.comments", "contents": "No Git repository found in this workspace.", "when": "!gitOpenRepositoryCount" }
     ],
+    "configuration": {
+      "title": "Diff Notes",
+      "properties": {
+        "diffNotes.prePushHook": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Install a git `pre-push` hook in this repository that lists open Diff Notes comments on the commits being pushed and asks `Push anyway? [y/N]`. An existing pre-push hook (e.g. Husky) is kept and runs first. Turning this off removes the hook and restores the previous one."
+        }
+      }
+    },
     "commands": [
       { "command": "diffNotes.groupBy", "title": "Group By...", "category": "Diff Notes", "icon": "$(list-tree)" },
       { "command": "diffNotes.openOnly", "title": "Show Open Only", "category": "Diff Notes", "icon": "$(filter)" },
