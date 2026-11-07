@@ -182,8 +182,10 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
   const reg = (id: string, fn: (...args: any[]) => unknown) => ctx.subscriptions.push(vscode.commands.registerCommand(id, fn));
   reg('diffNotes.refresh', () => commits.refresh());
   /** Open (not resolved, not outdated) notes whose thread sits on one of these diff document URIs. */
-  const openNotesIn = (uris: string[]): StoredComment[] =>
-    store.all().filter(c => !c.outdated && c.status === 'open' && uris.includes(diffUri({ file: c.file, origin: c.origin, side: c.side }).toString()));
+  /** Every note our controller shows in these documents (open and resolved; outdated ones are not in the diff). */
+  const notesIn = (uris: string[]): StoredComment[] =>
+    store.all().filter(c => !c.outdated && uris.includes(diffUri({ file: c.file, origin: c.origin, side: c.side }).toString()));
+  const openNotesIn = (uris: string[]): StoredComment[] => notesIn(uris).filter(c => c.status === 'open');
   /** Both document URIs of the diff in the active tab, if it is one of ours. */
   const currentDiffUris = (): string[] | undefined => {
     const i = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
@@ -213,7 +215,7 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     const pos = new vscode.Position(c.startLine - 1, 0);
     ed.selection = new vscode.Selection(pos, pos);
     ed.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenterIfOutsideViewport);
-    notes.focusOnly(openNotesIn(diffUris).map(x => x.id), c.id);
+    notes.focusOnly(notesIn(diffUris).map(x => x.id), c.id);
     return true;
   };
   const stepNote = async (dir: 1 | -1): Promise<void> => {
@@ -224,9 +226,9 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     const ed = vscode.window.activeTextEditor;
     const d = ed && uris.includes(ed.document.uri.toString()) ? parseDiffUri(ed.document.uri) : undefined;
     const cursor = ed && d ? { side: d.side, line: ed.selection.active.line + 1 } : undefined;
-    const { note, wrapped } = pickNote(openNotesIn(uris), cursor, dir);
+    const { note, wrapped } = pickNote(notesIn(uris), cursor, dir);
     if (!note) {
-      vscode.window.setStatusBarMessage('Diff Notes: no open notes in this diff', 3000);
+      vscode.window.setStatusBarMessage('Diff Notes: no notes in this diff', 3000);
       return;
     }
     await goToNote(note, uris);

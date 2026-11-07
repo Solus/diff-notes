@@ -23,3 +23,9 @@ test('no cursor starts at the ends; no notes gives nothing', () => {
   assert.equal(pickNote(notes, undefined, -1).note?.id, 'c');
   assert.equal(pickNote([], undefined, 1).note, undefined);
 });
+
+test('steps through notes of any status', () => {
+  const all = [{ ...n('o', 'new', 3), status: 'open' }, { ...n('r', 'new', 9), status: 'resolved' }];
+  assert.equal(pickNote(all, { side: 'new', line: 3 }, 1).note?.id, 'r');
+  assert.equal(pickNote(all, { side: 'new', line: 9 }, 1).wrapped, true);
+});
