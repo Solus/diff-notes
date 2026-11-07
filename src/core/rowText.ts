@@ -96,11 +96,13 @@ function mutedBody(escaped: string): string {
 }
 
 /**
- * Blank space around a rule. The hover sanitizer keeps `style` only on `<span>` and only for
- * colour/background/display/border-radius (no margin/height), so spacing is a standalone `<br>` block
- * (allowed by the sanitizer) on each side: one line, no paragraph margins, works after fences and quotes.
+ * Spacing around a rule, measured against VS Code's hover CSS (13px text, 19px lines, `p`/`ul`/`.code` margin 8px,
+ * `hr` margin 4px -8px -4px). The sanitizer allows no margin/height, so the space comes from an empty, zero-height
+ * heading wrapping an empty `<blockquote>`: its margin is 1em of the heading's font size, and margins of empty
+ * elements collapse with the neighbours' (max wins), so the gap does not depend on the section type. The `hr`'s
+ * -4px bottom margin is why the two sides differ: h3 above (~15px) and h2 below (~19.5px) both give ~16px of space.
  */
-const RULE = '\n\n<br>\n\n---\n\n<br>\n\n';
+const RULE = '\n\n<h3><blockquote></blockquote></h3>\n\n---\n\n<h2><blockquote></blockquote></h2>\n\n';
 
 /**
  * Markdown for a note's hover tooltip (needs supportThemeIcons + supportHtml), note first:
