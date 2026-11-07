@@ -104,7 +104,7 @@
       ],
       "comments/commentThread/context": [
         { "command": "diffNotes.createComment", "when": "commentController == diffNotes && commentThreadIsEmpty", "group": "inline@1" },
-        { "command": "diffNotes.cancelDraft", "when": "commentController == diffNotes && commentThreadIsEmpty", "group": "inline@2" },
+        { "command": "diffNotes.cancelDraft", "when": "commentController == diffNotes", "group": "inline@2" },
         { "command": "diffNotes.reply", "when": "commentController == diffNotes && !commentThreadIsEmpty", "group": "inline@1" }
       ],
       "comments/commentThread/title": [
