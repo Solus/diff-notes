@@ -1,12 +1,12 @@
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { CommentGroup, GroupMode, visibleList } from './core/commentList';
 import { MdSection, shortOrigin } from './core/markdown';
-import { rangeLabel, StoredComment, WORKING_TREE } from './core/model';
+import { RowGroup, rowDescription, tooltipMarkdown } from './core/rowText';
+import { StoredComment, WORKING_TREE } from './core/model';
 import { CommentStore } from './core/store';
 import { GitService } from './git';
 
-export type Node = { kind: 'group'; group: CommentGroup; label: string } | { kind: 'comment'; comment: StoredComment; showCommit: boolean };
+export type Node = { kind: 'group'; group: CommentGroup; label: string } | { kind: 'comment'; comment: StoredComment; group: RowGroup };
 
 export const GROUP_LABELS: Record<GroupMode, string> = { commit: 'Commit', file: 'File', none: 'None' };
 
@@ -32,7 +32,7 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
 
   async getChildren(node?: Node): Promise<Node[]> {
     if (node) {
-      return node.kind === 'group' ? node.group.comments.map(comment => ({ kind: 'comment', comment, showCommit: this.mode !== 'commit' || node.group.kind === 'outdated' || node.group.kind === 'pushed' })) : [];
+      return node.kind === 'group' ? node.group.comments.map(comment => ({ kind: 'comment', comment, group: node.group.kind })) : [];
     }
     if (!this.git) {
       return [];
@@ -40,7 +40,7 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
     const { order } = await this.load();
     const { loose, groups } = visibleList(this.store.all(), this.openOnly, this.mode, order);
     return [
-      ...loose.map(comment => ({ kind: 'comment' as const, comment, showCommit: true })),
+      ...loose.map(comment => ({ kind: 'comment' as const, comment, group: undefined })),
       ...groups.map(group => ({ kind: 'group' as const, group, label: this.groupLabel(group) })),
     ];
   }
@@ -91,9 +91,10 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
     const c = node.comment;
     const first = c.body.split(/\r?\n/).find(l => l.trim()) ?? '(empty)';
     const item = new vscode.TreeItem(first.trim(), vscode.TreeItemCollapsibleState.None);
-    const where = `${path.posix.basename(c.file)} · ${rangeLabel(c)}`;
-    item.description = node.showCommit ? `${where} · ${this.originLabel(c.origin)}` : where;
-    item.tooltip = `${c.file} · ${rangeLabel(c)}\n${this.originLabel(c.origin)} · ${c.status}\n\n${c.body}`;
+    item.description = rowDescription(node.group, c, this.originLabel(c.origin));
+    const tip = new vscode.MarkdownString(tooltipMarkdown(c, c.origin === WORKING_TREE ? 'Working tree' : (this.subjects.get(c.origin) ?? shortOrigin(c.origin)), Date.now()));
+    tip.supportThemeIcons = false;
+    item.tooltip = tip;
     item.iconPath = new vscode.ThemeIcon(c.status === 'resolved' ? 'check' : c.outdated ? 'warning' : 'comment');
     item.contextValue = c.status;
     item.command = { command: 'diffNotes.openComment', title: 'Open Comment', arguments: [c.id] };
