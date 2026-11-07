@@ -1,4 +1,3 @@
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { markerSpans } from './core/markers';
 import { CommentStore } from './core/store';
@@ -9,8 +8,8 @@ export class Markers implements vscode.Disposable {
   private readonly type: vscode.TextEditorDecorationType;
   private readonly subs: vscode.Disposable[];
 
-  constructor(private readonly store: CommentStore, _ctx?: vscode.ExtensionContext) {
-    const icon = (t: string) => vscode.Uri.file(path.join(__dirname, '..', 'media', `note-stripe-${t}.svg`));
+  constructor(private readonly store: CommentStore, ctx: vscode.ExtensionContext) {
+    const icon = (t: string) => vscode.Uri.joinPath(ctx.extensionUri, 'media', `note-stripe-${t}.svg`);
     this.type = vscode.window.createTextEditorDecorationType({
       isWholeLine: true,
       gutterIconPath: icon('dark'),
