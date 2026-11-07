@@ -74,10 +74,37 @@ export function escapeBody(body: string): string {
 /** Muted text (description colour). Needs `supportHtml`. */
 const muted = (t: string): string => `<span style="color:var(--vscode-descriptionForeground);">${t}</span>`;
 
+/** Muted version of an already escaped markdown body: each text line wrapped; fences, blank lines and list/quote/heading markers left alone. */
+function mutedBody(escaped: string): string {
+  let fence = '';
+  return escaped.split('\n').map(line => {
+    const m = /^\s*(`{3,}|~{3,})/.exec(line);
+    if (m) {
+      if (!fence) {
+        fence = m[1];
+      } else if (m[1][0] === fence[0] && m[1].length >= fence.length) {
+        fence = '';
+      }
+      return line;
+    }
+    if (fence || !line.trim()) {
+      return line;
+    }
+    const mark = /^\s*(?:(?:#{1,6}|>|[-*+]|\d+[.)])\s+)*/.exec(line)![0];
+    return mark + muted(line.slice(mark.length));
+  }).join('\n');
+}
+
 /**
- * Markdown for a note's hover tooltip (needs supportThemeIcons + supportHtml), in sections split by rules:
- * header (path, range, commit, status), note, replies as one blockquote each (if any), code snippet.
- * `commit` is `abc1234 subject` or `Working tree`. All inserted text is escaped.
+ * Blank space around a rule. The hover sanitizer keeps `style` only on `<span>` and only for
+ * colour/background/display/border-radius (no margin/height), so spacing is `&nbsp;` paragraphs.
+ */
+const RULE = '\n\n&nbsp;\n\n---\n\n&nbsp;\n\n';
+
+/**
+ * Markdown for a note's hover tooltip (needs supportThemeIcons + supportHtml), note first:
+ * author line + note, replies as muted blockquotes (if any), muted footer (file, range, commit, status), code snippet.
+ * Sections are separated by spaced rules. `commit` is `abc1234 subject` or `Working tree`. All inserted text is escaped.
  */
 export function tooltipMarkdown(c: StoredComment, commit: string, now: number): string {
   const status = c.outdated ? 'Outdated' : c.status === 'resolved' ? 'Resolved' : 'Open';
@@ -95,18 +122,16 @@ export function tooltipMarkdown(c: StoredComment, commit: string, now: number): 
     }
     where = `$(git-commit) ${escapeInline(sha)}` + (subject ? ` · ${escapeInline(subject)}` : '');
   }
-  const sections = [
-    `$(file) **${escapeInline(c.file)}** · ${rangeLabel(c)}\n\n${where} · ${muted(status)}`,
-    `$(comment) **${escapeInline(c.author)}**${when(c.createdAt)}\n\n${escapeBody(c.body.trimEnd())}`,
-  ];
+  const sections = [`$(comment) **${escapeInline(c.author)}**${when(c.createdAt)}\n\n${escapeBody(c.body.trimEnd())}`];
   if (c.replies.length > 0) {
     const quotes = c.replies.map(r => {
-      const lines = escapeBody(r.body.trimEnd()).split('\n');
+      const lines = mutedBody(escapeBody(r.body.trimEnd())).split('\n');
       lines[0] = `**${escapeInline(r.author)}**${when(r.createdAt)} — ${lines[0]}`;
       return lines.map(l => `> ${l}`.trimEnd()).join('\n');
     });
     sections.push(quotes.join('\n\n'));
   }
+  sections.push(`${muted(`$(file) ${escapeInline(c.file)} · ${rangeLabel(c)}`)}\n\n${muted(`${where} · ${status}`)}`);
   if (c.snippet.lines.length > 0) {
     const shown = c.snippet.lines.slice(0, TIP_CODE_LINES);
     const more = c.snippet.lines.length - shown.length;
@@ -115,7 +140,7 @@ export function tooltipMarkdown(c: StoredComment, commit: string, now: number): 
     const fence = '`'.repeat(Math.max(3, longest + 1));
     sections.push(`${fence}${languageOf(c.file)}\n${code}\n${fence}` + (more > 0 ? '\n\n' + muted(`… ${more} more line${more === 1 ? '' : 's'}`) : ''));
   }
-  return sections.join('\n\n---\n\n');
+  return sections.join(RULE);
 }
 
 /** One line of markdown as plain text: no emphasis, code ticks, heading/list/quote markers; links keep their text. */

@@ -33,15 +33,15 @@ test('tooltip markdown', () => {
   assert.equal(
     tooltipMarkdown(n, 'abc1234 subj', now),
     [
-      `$(file) **src/a.ts** · L5–7\n\n$(git-commit) abc1234 · subj · ${M('Open')}`,
       `$(comment) **me** · ${M('1 day ago')}\n\nfirst\nmore`,
-      '> **bob** — ok',
+      `> **bob** — ${M('ok')}`,
+      `${M('$(file) src/a.ts · L5–7')}\n\n${M('$(git-commit) abc1234 · subj · Open')}`,
       '```typescript\nlet a;\n```',
-    ].join('\n\n---\n\n'),
+    ].join('\n\n&nbsp;\n\n---\n\n&nbsp;\n\n'),
   );
-  assert.ok(tooltipMarkdown(n, 'Working tree', now).includes(`$(edit) Working tree · ${M('Open')}`));
+  assert.ok(tooltipMarkdown(n, 'Working tree', now).includes(M('$(edit) Working tree · Open')));
   const two = tooltipMarkdown({ ...n, replies: [{ id: 'r', author: 'bob', createdAt: '2026-01-09T00:00:00Z', body: 'a\nb' }, { id: 's', author: 'al', createdAt: 't', body: 'c' }] }, 'x', now);
-  assert.ok(two.includes(`> **bob** · ${M('1 day ago')} — a\n> b\n\n> **al** — c`));
+  assert.ok(two.includes(`> **bob** · ${M('1 day ago')} — ${M('a')}\n> ${M('b')}\n\n> **al** — ${M('c')}`));
   assert.ok(!two.includes('Replies'));
   const long = tooltipMarkdown({ ...n, snippet: { before: [], after: [], lines: Array.from({ length: 8 }, (_, i) => 'l' + i) } }, 'x', now);
   assert.ok(long.includes('l4\n```\n\n' + M('… 3 more lines')) && !long.includes('l5'));
