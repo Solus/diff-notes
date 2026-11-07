@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { END_OF_LINE, linesFromRange } from './core/threadRange';
 import { OUTDATED_SCHEME } from './core/diffRef';
 import { rangeLabel, StoredComment } from './core/model';
 import { extractSnippet, splitLines } from './core/snippet';
@@ -98,7 +99,7 @@ export class NotesController implements vscode.Disposable {
       this.drop(c.id);
     }
     const uri = diffUri({ file: c.file, origin: c.origin, side: c.side });
-    const range = new vscode.Range(c.startLine - 1, 0, c.endLine - 1, 0);
+    const range = new vscode.Range(c.startLine - 1, 0, c.endLine - 1, END_OF_LINE);
     const live = this.threads.get(c.id);
     if (live && live.uri.toString() === uri.toString()) {
       live.range = range;
@@ -117,7 +118,7 @@ export class NotesController implements vscode.Disposable {
   openOutdatedThread(c: StoredComment): { uri: vscode.Uri; range: vscode.Range } {
     const uri = outdatedUri(c);
     const first = c.snippet.before.length;
-    const range = new vscode.Range(first, 0, first + Math.max(0, c.snippet.lines.length - 1), 0);
+    const range = new vscode.Range(first, 0, first + Math.max(0, c.snippet.lines.length - 1), END_OF_LINE);
     if (!this.threads.has(c.id)) {
       const thread = this.controller.createCommentThread(uri, range, []);
       this.outdatedIds.add(c.id);
@@ -155,8 +156,7 @@ export class NotesController implements vscode.Disposable {
     }
     this.drafts.delete(thread);
     const range = thread.range ?? new vscode.Range(0, 0, 0, 0);
-    const startLine = range.start.line + 1;
-    const endLine = range.end.line + 1;
+    const { startLine, endLine } = linesFromRange(range.start, range.end);
     const doc = await vscode.workspace.openTextDocument(thread.uri);
     const c = this.store.add({
       author: await this.git.author(),
