@@ -1,6 +1,34 @@
 # Progress
 
 `[ ]` todo · `[x]` done · `[!]` blocked. STOP = coordinator waits for the user's F5 check.
+Follow-ups, known limits and the F5 checklist: `BACKLOG.md`.
+
+## Current state
+- Slices 1–8 done, plus extras: delete/cleanup/auto-clear, copy as markdown, Group-by dropdown, Open File (follows renames), Previous/Next Note, markdown note bodies, note-first tooltips, realistic sandbox.
+- `npm run build` and `npm test` pass; tree clean; pushed to private GitHub repo `Solus/diff-notes`, branch `main`.
+- Confirmed under F5 by the user: slices 1–4 and 8, Cancel, gutter stripe, tooltip layout. Everything else is built but **not yet checked under F5** (list in `BACKLOG.md`).
+- Slice 9 half done (status icons, tooltips). Slice 10 parked (user: functionality first, polish later).
+
+## Next steps
+1. **User F5 pass** over the unchecked list in `BACKLOG.md`; fix what fails (fix-up subagents use systematic-debugging).
+2. **Slice 9 rest — brief for an implementer:** Goal: in the Commits view, file rows with open notes get a badge and colour (FileDecorationProvider on the `diff-notes:` file URIs used by Commits rows), and the Diff Notes sidebar icon shows the open-notes count (TreeView `badge` on the Comments view, same count as the status bar). Area: `src/` view code; count logic already in `src/core/commentList.ts`. Verify: `npm run build && npm test`; add a pure test if new logic is added. Done: both visible under F5 in `sandbox/`, slice 9 ticked, PROGRESS updated per slice protocol.
+3. Slice 10 (note box status label, author avatar) when the user asks.
+
+## Open decisions
+- Slice 10 scope: status label on notes and author avatar — parked, user to say when.
+- Report the Esc bug (`hideComment` registered twice) to VS Code upstream? Not decided.
+- Multi-repo workspaces (first repo only) — leave or support? Not discussed.
+
+## Gotchas
+- Subagent "tests pass" claims are not proof — always run `npm run build && npm test` yourself (a tooltip test once failed after a "passing" report).
+- F5 opens `sandbox/`; VS Code won't open a folder already open in another window (gives an empty window). `npm run sandbox:reset` rebuilds the sandbox and its notes.
+- Media paths: use `ctx.extensionUri`, not `__dirname` (that is `out/`).
+- Comment-menu commands receive the reply-box object, not the thread.
+- Any command with an icon must be in a menu — `test/menus.test.ts` enforces it.
+- VS Code only auto-scrolls a diff to a note when exactly one thread is expanded; we jump explicitly.
+- Esc in comment boxes is broken in VS Code 1.145 (its bug); Cancel is the close path. Don't add workarounds.
+- Hover sanitizer: `style` only on `<span>`, only colour/background/display/border-radius. Tooltip divider spacing is tuned to VS Code 1.145 hover CSS (measured in headless Chromium) — re-check after VS Code updates; don't guess spacing, measure.
+- Hook tests run real `git push` with Git for Windows `sh`.
 
 ## Slices
 - [x] 1 Base (SPEC §1–3): scaffold; Commits TreeView (working tree, unpushed commits, files); open diff; create/edit/reply/resolve line and range comments; persist to `.git/diff-notes/`; reload on start. STOP.
@@ -52,51 +80,5 @@
 - Copy as markdown: `visibleList` (core) is the single source for what the list shows, used by both the tree and Copy; format in `src/core/markdown.ts` (`## group`, `- [ ]/[x] path:L5-7 (sha subject) — first line`, indented rest/replies/fenced snippet). Language id guessed from file extension (core map), not VS Code's language registry.
 
 ## Log
-- S1 built: scaffold, Commits view (working tree + unpushed commits + files), native diff, notes create/edit/reply/resolve/reopen, JSON in `.git/diff-notes/`, reload on start.
-- S1 decided: read-only `diff-notes:` docs on both sides so notes stay out of normal editors.
-- S1 open: working-tree diff can't be edited in place; threads don't move when the working tree changes (slice 4).
-- S1 open: multi-repo workspaces use the first repo only; not yet checked in a running VS Code (needs F5).
-- S2 built: pure `src/anchor/` `reanchor` + 11 tests (unchanged, moved, partial, removed, duplicates, whitespace).
-- S2 open: lines inserted/deleted inside a range change its length, so it falls back to positional matching; commit-SHA lookup (reflog) is slice 4.
-- S3 built: Comments view (group by Commit/File/None via title button, Open-only toggle), click opens diff at the range, status bar counter; 5 tests.
-- S3 decided: comments on commits not in the unpushed list go in a temporary "not in unpushed list" group.
-- S3 open: not checked in a running VS Code (needs F5); old-side comments select the range on the new side only; Commits-view comment badges not done (not in this slice's task).
-- S4 built: re-anchoring on save/commit/amend/rebase/checkout; working-tree comments move to the commit they land in; Outdated group and read-only outdated view with reply/resolve/Open Current Diff; 9 tests.
-- S4 decided: outdated comments do not count in the status bar; "(not in unpushed list)" now only holds pushed commits until slice 5.
-- S4 open: not checked in a running VS Code (needs F5: edit a commented file, commit, amend, rebase -i); multi-commit landing picks the newest matching commit; "Open Current Diff" on a vanished commit relies on git still holding the object.
-- S5 built: PUSHED group replaces "(not in unpushed list)" in all group modes (before Outdated); excluded from counter; 2 tests changed/added.
-- S5 decided: pushed comments stay in the PUSHED group even in File mode (not mixed into file groups).
-- S5 open: not checked in a running VS Code (needs F5: commit with a note, `git push` in sandbox, see it move to PUSHED and counter drop).
-- S6 built: opt-in `diffNotes.prePushHook` setting; hook lists open comments on pushed commits and asks `Push anyway? [y/N]`; chains existing hooks; 5 tests incl. real git push with Git for Windows sh.
-- S6 decided: no terminal (e.g. push from an IDE) = list printed, push allowed; summary file keeps the hook free of JSON parsing.
-- S6 open: not checked in a running VS Code (needs F5 on sandbox: enable setting, comment on a commit, `git push` in a terminal); if Husky regenerates its hooks dir (`.husky/_`) our hook is overwritten until the extension next starts; the y/N answer path was tested via a faked tty file, not a real console.
-- S7 built: remembered Group-by per workspace; comments follow file renames; Commits view note counts (SPEC §5 badges); 2 tests added.
-- S7 decided: rename following covers the new side only; SPEC §9 counter question settled (working tree counts).
-- S7 open: not checked in a running VS Code (F5: rename a commented file and commit; reload and see Group-by kept); multi-repo still first repo only; working-tree diff still not editable in place; old-side comments on a renamed file are not re-pathed.
-- Fix: Cancel button crashed (VS Code passes the reply box object, not the thread); now closes empty drafts, collapses existing threads; Esc closes the editor. Esc not checked in a running VS Code.
-- Fix: Esc did nothing because VS Code already binds Esc to hideComment, which only flips a thread to Collapsed; a brand-new empty box is already 'collapsed', so no change fires (read from VS Code 1.145 source, not run). Our duplicate Esc binding removed; built-in Esc still hides existing notes. Cancel always closes without asking (new empty box disposed, existing note collapsed); empty drafts we have seen are disposed when their diff tab closes. Open: Esc on a brand-new box still no-op; keybindings cannot read the box text.
-- Esc root cause (confirmed under F5 with a debugger, VS Code 1.145.2): VS Code registers `workbench.action.hideComment` twice; the later alt+Backspace handler replaces the Esc one and finds no controller for a comment box, so Esc is a no-op everywhere (VS Code bug; supersedes the line above). Decided: no Esc workaround; Cancel is the way to close a note. New notes: Cancel only. Candidate upstream report.
-- S8 built: amber line tint, gutter note icon and scrollbar marks for open notes on both diff sides; two contributed theme colours with light/dark/HC defaults; 1 test.
-- S8 decided: resolved and outdated notes get no marker; refresh piggybacks on persist and re-anchor.
-- S8 open: not checked in a running VS Code (F5): gutter icon (glyph margin) vs VS Code's "+" (line-decoration strip) are different columns so should coexist, unverified; a pending unsaved draft box gets no marker until saved.
-- S8 follow-up: tint and left border replaced by a full-line-height amber gutter stripe (light/dark SVGs); VS Code's own comment glyph may cover the stripe on the anchor line (accepted); not yet eyeballed under F5.
-- fix: opening a note no longer selects text; cursor at note start, range scrolled into view, thread expanded (also Outdated view and Open Current Diff). Note thread/marker ranges still end at col 0 of the last line (comments.ts sync, openOutdatedThread); left unchanged.
-- fix: note range covers its last line; thread ranges now end at end-of-line (clamped col), and a new thread's range ending at col 0 of a later line is stored without that extra line (src/core/threadRange.ts, tested). Not checked in a running VS Code.
-- feat: Open File button (note title bar in diff and Outdated view, Comments list row) opens the real file at the note's line, re-anchored from its snippet; falls back to stored line with a status bar message; missing file shows an info message. Not checked in a running VS Code.
-- Delete + cleanup built: trash button, Delete Note, three bulk deletes, auto-clear setting; 5 tests. Not checked under F5 (modal wording, `...` menu placement, trash icon order next to Edit).
-- Copy built: Copy Notes title button, Copy on group and note rows, "Copied N notes" status message; 5 tests. Not checked under F5 (clipboard paste, button order).
-- ui: Group By is now a title-bar dropdown (submenu with Commit/File/None, check mark on current via `diffNotes.groupMode` context key); old quick pick removed. Not checked under F5.
-- ui: denser comment rows (description trimmed by group mode, pure `src/core/rowText.ts`) and rich markdown tooltips (path, commit, status, author/age, body, replies, snippet). Not checked under F5.
-- ui: in Group by File, PUSHED and Outdated hold per-file sub-headings (rows show `L5–7 · sha`); Copy Notes / group Copy emit `###` sub-headings, sub-heading Copy copies one file. Not checked under F5.
-- sandbox: realistic multi-language project (TS services, Python report, README, config), 2 pushed + 4 unpushed commits (move, rename, delete, bugfix), working-tree/staged/untracked changes, 15 seeded notes (old/new side, ranges, resolved, replies, long body, PUSHED, Outdated, renamed file); seed files in scripts/sandbox-seed/, deterministic SHAs. Notes seeded by writing comments.json directly (snippets via the extension's rules); not opened under F5.
-- fix: Cancel on reply boxes: Cancel's menu `when` required `commentThreadIsEmpty`, so it only showed on new-note boxes; dropped that clause (Cancel@2 beside Reply@1, same order as Create/Cancel). Not checked under F5.
-- fix: Open File buttons were never in a menu; now on note title bars (diff + Outdated), Comments note rows (hover), diff editor title (cursor line, re-anchored from a ±3-line snippet) and Commits file rows (line 1); new test checks every icon command is in a menu. Not checked under F5.
-- fix: Open File follows renames: old-side notes / diff left side map the stored path forward via `git diff -M --name-status <base>` (parent for old side, commit for new side; pure `src/core/followRename.ts`, 5 tests); stored paths unchanged; verified on sandbox bf94ba4 (src/utils.ts -> src/helpers.ts), not under F5.
-- feat: jump between notes in a diff: opening a file from Commits now goes to its first open note (before, VS Code only scrolled when the diff held exactly one expanded note); Previous/Next Note buttons in the diff title bar, palette and Alt+P / Alt+N, wrapping with a status bar message, other boxes collapsed; pure ordering in src/core/noteNav.ts (3 tests). Not checked under F5: side switch uses `workbench.action.compareEditor.focusOtherSide`; Alt+N/P checked only against known defaults.
-- ui: Previous/Next Note use circled arrow icons (distinct from VS Code's change arrows) and now step through every note in the diff, open and resolved; opening from Commits still lands on the first open note. Not checked under F5.
-- UI A: note bodies (comments and replies, diff and Outdated view) render as markdown (no commands/HTML); edit box still shows the raw source and stores plain text (not checked under F5). Comments-list tooltip split into rule-separated sections (header, note, replies, code capped at 12 lines).
-- UI B: Comments list labels are plain text (markdown stripped); status icons on notes (comment / check green / cloud-upload / warning) and on groups; commit groups show the subject with the count (sha in the tooltip); "PUSHED" renamed "Pushed".
-- UI C: Commits list file rows drop the git status letter (`src · 1 note`); commit rows show their open-note count (`abc1234 · 2 notes`); wording shortened everywhere.
-- ui: easier-to-read note tooltip: code capped at 5 lines, replies as blockquotes (no "Replies" label), theme icons, dates/status muted via `<span style="color:var(--vscode-descriptionForeground);">` (supportHtml; user text escaped); muted colour not checked under F5, may show plain if the sanitizer rejects it.
-- ui: note-first tooltip: author + note, muted replies, muted file/commit footer, code last; rules spaced with `&nbsp;` paragraphs because VS Code's sanitizer keeps `style` only on `<span>` (colour/background only, no margin/height). Not checked under F5.
-- ui: tooltip divider spacing measured (scratch Chromium + VS Code 1.145 hover CSS) and confirmed under F5: empty <h3>/<h2> blockquote spacers around `---` give ~16px each side. Brittle: depends on VS Code hover CSS; re-check after VS Code updates.
+- S1–S8 built per slice lines above; extras and fixes since (all committed, see `git log`).
+- Detailed per-slice open items moved to `BACKLOG.md` (2026-11-07 handoff).
