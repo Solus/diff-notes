@@ -3,17 +3,18 @@ import { markerSpans } from './core/markers';
 import { CommentStore } from './core/store';
 import { parseDiffUri } from './diffUri';
 
-/** Tint, gutter icon and scrollbar mark on lines with open notes, in both sides of our diffs. */
+/** Tint, left bar and scrollbar mark on lines with open notes, in both sides of our diffs. */
 export class Markers implements vscode.Disposable {
   private readonly type: vscode.TextEditorDecorationType;
   private readonly subs: vscode.Disposable[];
 
-  constructor(private readonly store: CommentStore, ctx: vscode.ExtensionContext) {
+  constructor(private readonly store: CommentStore, _ctx?: vscode.ExtensionContext) {
     this.type = vscode.window.createTextEditorDecorationType({
       isWholeLine: true,
       backgroundColor: new vscode.ThemeColor('diffNotes.commentedLineBackground'),
-      gutterIconPath: vscode.Uri.joinPath(ctx.extensionUri, 'media', 'note-gutter.svg'),
-      gutterIconSize: 'contain',
+      borderWidth: '0 0 0 2px',
+      borderStyle: 'solid',
+      borderColor: new vscode.ThemeColor('diffNotes.commentedLineBorder'),
       overviewRulerColor: new vscode.ThemeColor('diffNotes.overviewRulerMarker'),
       overviewRulerLane: vscode.OverviewRulerLane.Right,
     });

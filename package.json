@@ -46,6 +46,11 @@
         "defaults": { "dark": "#d9a8431f", "light": "#b8860b26", "highContrast": "#d9a84340", "highContrastLight": "#b8860b40" }
       },
       {
+        "id": "diffNotes.commentedLineBorder",
+        "description": "Left-edge bar along lines that have an open Diff Notes note.",
+        "defaults": { "dark": "#ffb400", "light": "#b36b00", "highContrast": "#ffd866", "highContrastLight": "#8a6500" }
+      },
+      {
         "id": "diffNotes.overviewRulerMarker",
         "description": "Scrollbar (overview ruler) mark for lines that have an open Diff Notes note.",
         "defaults": { "dark": "#d9a843cc", "light": "#b8860bcc", "highContrast": "#ffd866", "highContrastLight": "#8a6500" }
