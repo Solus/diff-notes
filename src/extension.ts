@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { Anchoring } from './anchoring';
 import { NoteComment, NotesController, OutdatedContentProvider } from './comments';
-import { CommentsProvider, GROUP_LABELS } from './commentsView';
+import { CommentsProvider, GROUP_LABELS, Node as ListNode } from './commentsView';
 import { CommitsProvider } from './commitsView';
 import { DiffContentProvider } from './contentProvider';
 import { OUTDATED_SCHEME, SCHEME } from './core/diffRef';
@@ -12,6 +12,7 @@ import { ChangedFile } from './core/gitParse';
 import { CommentStore } from './core/store';
 import { StoredComment, WORKING_TREE } from './core/model';
 import { findOpenLine } from './core/openLine';
+import { countNotes, notesToMarkdown } from './core/markdown';
 import { diffUri } from './diffUri';
 import { GitService } from './git';
 import { Markers } from './markers';
@@ -299,6 +300,17 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
   reg('diffNotes.deleteResolved', () => bulkDelete('resolved', () => resolvedNotes(store.all())));
   reg('diffNotes.deletePushed', () => bulkDelete('pushed', u => pushedNotes(store.all(), u)));
   reg('diffNotes.deleteOutdated', () => bulkDelete('outdated', () => outdatedNotes(store.all())));
+  const copyMarkdown = async (src: { sections: import('./core/markdown').MdSection[]; commitLabel: (origin: string) => string }): Promise<void> => {
+    const n = countNotes(src.sections);
+    if (n === 0) {
+      vscode.window.setStatusBarMessage('Diff Notes: nothing to copy', 3000);
+      return;
+    }
+    await vscode.env.clipboard.writeText(notesToMarkdown(src.sections, src.commitLabel));
+    vscode.window.setStatusBarMessage(`Diff Notes: Copied ${n} note${n === 1 ? '' : 's'}`, 3000);
+  };
+  reg('diffNotes.copyNotes', async () => copyMarkdown(await commentsView.sections()));
+  reg('diffNotes.copyNode', async (node: ListNode) => (node ? copyMarkdown(await commentsView.sectionsFor(node)) : undefined));
   reg('diffNotes.resolve', (t: vscode.CommentThread) => notes.setStatus(t, 'resolved'));
   reg('diffNotes.reopen', (t: vscode.CommentThread) => notes.setStatus(t, 'open'));
 }

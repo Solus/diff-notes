@@ -49,6 +49,7 @@
 - Notes going Outdated when lines change inside their range is accepted (user, 2026-11-07); no fuzzier anchoring planned.
 - Delete: trash on every comment in the note box; a reply goes at once, the first comment deletes the whole note (modal "Delete" confirm only if it has replies); "Delete Note" on list rows, same rule; works in the Outdated view. Pure store ops `remove`/`removeReply`.
 - Cleanup: Delete All Resolved/Pushed/Outdated in the Comments `...` menu (modal with count, info message at 0). `diffNotes.autoClearPushedDays` (0 = off) deletes notes whose optional `pushedAt` (stamped when first seen as pushed, cleared if back on an unpushed commit) is older than N days; runs after startup anchoring and each git change, skipped if the unpushed list can't be read (`tryUnpushed`). Logic in `src/core/cleanup.ts`.
+- Copy as markdown: `visibleList` (core) is the single source for what the list shows, used by both the tree and Copy; format in `src/core/markdown.ts` (`## group`, `- [ ]/[x] path:L5-7 (sha subject) — first line`, indented rest/replies/fenced snippet). Language id guessed from file extension (core map), not VS Code's language registry.
 
 ## Log
 - S1 built: scaffold, Commits view (working tree + unpushed commits + files), native diff, notes create/edit/reply/resolve/reopen, JSON in `.git/diff-notes/`, reload on start.
@@ -83,3 +84,4 @@
 - fix: note range covers its last line; thread ranges now end at end-of-line (clamped col), and a new thread's range ending at col 0 of a later line is stored without that extra line (src/core/threadRange.ts, tested). Not checked in a running VS Code.
 - feat: Open File button (note title bar in diff and Outdated view, Comments list row) opens the real file at the note's line, re-anchored from its snippet; falls back to stored line with a status bar message; missing file shows an info message. Not checked in a running VS Code.
 - Delete + cleanup built: trash button, Delete Note, three bulk deletes, auto-clear setting; 5 tests. Not checked under F5 (modal wording, `...` menu placement, trash icon order next to Edit).
+- Copy built: Copy Notes title button, Copy on group and note rows, "Copied N notes" status message; 5 tests. Not checked under F5 (clipboard paste, button order).

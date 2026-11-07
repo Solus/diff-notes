@@ -85,3 +85,10 @@ export function groupComments(comments: readonly StoredComment[], mode: GroupMod
   }
   return tail();
 }
+
+/** What the Comments list shows: loose notes (mode `none`, shown before the groups) and the groups. */
+export function visibleList(all: readonly StoredComment[], openOnly: boolean, mode: GroupMode, order: readonly string[]): { loose: StoredComment[]; groups: CommentGroup[] } {
+  const comments = filterComments(all, openOnly);
+  const loose = mode === 'none' ? sortComments(comments.filter(c => !c.outdated && !isPushed(c, order)), order) : [];
+  return { loose, groups: groupComments(comments, mode, order) };
+}

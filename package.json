@@ -71,6 +71,8 @@
       { "command": "diffNotes.reopen", "title": "Reopen", "category": "Diff Notes", "icon": "$(issue-reopened)" },
       { "command": "diffNotes.deleteComment", "title": "Delete", "category": "Diff Notes", "icon": "$(trash)" },
       { "command": "diffNotes.deleteNote", "title": "Delete Note", "category": "Diff Notes" },
+      { "command": "diffNotes.copyNotes", "title": "Copy Notes", "category": "Diff Notes", "icon": "$(copy)" },
+      { "command": "diffNotes.copyNode", "title": "Copy", "category": "Diff Notes" },
       { "command": "diffNotes.deleteResolved", "title": "Delete All Resolved", "category": "Diff Notes" },
       { "command": "diffNotes.deletePushed", "title": "Delete All Pushed", "category": "Diff Notes" },
       { "command": "diffNotes.deleteOutdated", "title": "Delete All Outdated", "category": "Diff Notes" }
@@ -81,11 +83,13 @@
         { "command": "diffNotes.showAll", "when": "view == diffNotes.comments && diffNotes.openOnly", "group": "navigation@2" },
         { "command": "diffNotes.openOnly", "when": "view == diffNotes.comments && !diffNotes.openOnly", "group": "navigation@2" },
         { "command": "diffNotes.refresh", "when": "view == diffNotes.commits", "group": "navigation" },
+        { "command": "diffNotes.copyNotes", "when": "view == diffNotes.comments", "group": "navigation@3" },
         { "command": "diffNotes.deleteResolved", "when": "view == diffNotes.comments", "group": "cleanup@1" },
         { "command": "diffNotes.deletePushed", "when": "view == diffNotes.comments", "group": "cleanup@2" },
         { "command": "diffNotes.deleteOutdated", "when": "view == diffNotes.comments", "group": "cleanup@3" }
       ],
       "view/item/context": [
+        { "command": "diffNotes.copyNode", "when": "view == diffNotes.comments && viewItem =~ /^(open|resolved|commentGroup)$/", "group": "1_copy" },
         { "command": "diffNotes.deleteNote", "when": "view == diffNotes.comments && viewItem =~ /^(open|resolved)$/", "group": "9_delete" }
       ],
       "comments/commentThread/context": [
@@ -120,7 +124,8 @@
         { "command": "diffNotes.resolve", "when": "false" },
         { "command": "diffNotes.reopen", "when": "false" },
         { "command": "diffNotes.deleteComment", "when": "false" },
-        { "command": "diffNotes.deleteNote", "when": "false" }
+        { "command": "diffNotes.deleteNote", "when": "false" },
+        { "command": "diffNotes.copyNode", "when": "false" }
       ]
     }
   },

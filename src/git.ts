@@ -49,6 +49,15 @@ export class GitService {
     }
   }
 
+  /** `abc1234 subject` for any commit, or undefined if git can't read it. */
+  async commitLabel(sha: string): Promise<string | undefined> {
+    try {
+      return (await this.run(['log', '-1', '--format=%h %s', sha])).trim() || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   /** SHA of HEAD, if any. */
   get headSha(): string | undefined {
     return this.repo.state.HEAD?.commit;

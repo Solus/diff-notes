@@ -1,11 +1,12 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { CommentGroup, filterComments, groupComments, GroupMode, isPushed, sortComments } from './core/commentList';
+import { CommentGroup, GroupMode, visibleList } from './core/commentList';
+import { MdSection, shortOrigin } from './core/markdown';
 import { rangeLabel, StoredComment, WORKING_TREE } from './core/model';
 import { CommentStore } from './core/store';
 import { GitService } from './git';
 
-type Node = { kind: 'group'; group: CommentGroup; label: string } | { kind: 'comment'; comment: StoredComment; showCommit: boolean };
+export type Node = { kind: 'group'; group: CommentGroup; label: string } | { kind: 'comment'; comment: StoredComment; showCommit: boolean };
 
 export const GROUP_LABELS: Record<GroupMode, string> = { commit: 'Commit', file: 'File', none: 'None' };
 
@@ -36,15 +37,46 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
     if (!this.git) {
       return [];
     }
-    const commits = await this.git.unpushedCommits();
+    const { order } = await this.load();
+    const { loose, groups } = visibleList(this.store.all(), this.openOnly, this.mode, order);
+    return [
+      ...loose.map(comment => ({ kind: 'comment' as const, comment, showCommit: true })),
+      ...groups.map(group => ({ kind: 'group' as const, group, label: this.groupLabel(group) })),
+    ];
+  }
+
+  private async load(): Promise<{ order: string[] }> {
+    const commits = this.git ? await this.git.unpushedCommits() : [];
     this.subjects = new Map(commits.map(c => [c.sha, `${c.shortSha} ${c.subject}`]));
-    const order = commits.map(c => c.sha);
-    const comments = filterComments(this.store.all(), this.openOnly);
-    if (this.mode === 'none') {
-      const flat: Node[] = sortComments(comments.filter(c => !c.outdated && !isPushed(c, order)), order).map(comment => ({ kind: 'comment', comment, showCommit: true }));
-      return [...flat, ...groupComments(comments, 'none', order).map(group => ({ kind: 'group' as const, group, label: this.groupLabel(group) }))];
+    return { order: commits.map(c => c.sha) };
+  }
+
+  /** What the list shows now, as markdown sections (loose notes first, then groups). Also returns the commit labeller. */
+  async sections(): Promise<{ sections: MdSection[]; commitLabel: (origin: string) => string }> {
+    const { order } = await this.load();
+    const { loose, groups } = visibleList(this.store.all(), this.openOnly, this.mode, order);
+    const sections: MdSection[] = [{ notes: loose }, ...groups.map(g => ({ heading: this.groupLabel(g), notes: g.comments }))];
+    return { sections, commitLabel: await this.labeller(sections.flatMap(s => s.notes.map(n => n.origin))) };
+  }
+
+  /** Commit label function (`abc1234 subject`) for the given origins; looks up commits outside the unpushed list. */
+  async labeller(origins: string[]): Promise<(origin: string) => string> {
+    for (const o of new Set(origins)) {
+      if (o !== WORKING_TREE && !this.subjects.has(o) && this.git) {
+        const l = await this.git.commitLabel(o);
+        if (l) {
+          this.subjects.set(o, l);
+        }
+      }
     }
-    return groupComments(comments, this.mode, order).map(group => ({ kind: 'group', group, label: this.groupLabel(group) }));
+    return o => (o === WORKING_TREE ? 'Working tree' : (this.subjects.get(o) ?? shortOrigin(o)));
+  }
+
+  /** Same as `sections` for one group row or one note row. */
+  async sectionsFor(node: Node): Promise<{ sections: MdSection[]; commitLabel: (origin: string) => string }> {
+    await this.load();
+    const sections: MdSection[] = node.kind === 'group' ? [{ heading: node.label, notes: node.group.comments }] : [{ notes: [node.comment] }];
+    return { sections, commitLabel: await this.labeller(sections.flatMap(s => s.notes.map(n => n.origin))) };
   }
 
   getTreeItem(node: Node): vscode.TreeItem {
