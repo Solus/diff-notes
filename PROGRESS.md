@@ -44,7 +44,7 @@
 - Chaining: a foreign pre-push is moved to `pre-push.diff-notes-chained` and run first with the same args/stdin (its failure blocks); turning the setting off deletes ours and restores it. Prompt reads `/dev/tty`; with no terminal it prints the list and allows the push.
 - Group-by choice is saved in workspaceState (`diffNotes.groupBy`); Open-only stays on at start (SPEC: on by default).
 - Renames: a comment on a renamed file follows it (new side only; working tree and landing/rewritten commits) and its stored `file` is updated. Deleted files: new-side comments go outdated; old-side comments on a commit stay.
-- Commits view shows ` · N open notes` on working tree, commit and file rows (open, non-outdated only).
+- Commits view shows `N notes` (open, non-outdated) in the description of working tree, commit and file rows (file: `dir · 1 note`, no git letter) (open, non-outdated only).
 - Markers: one decoration type (amber gutter stripe from `media/note-stripe-{light,dark}.svg`, stretched via `gutterIconSize: '100% 100%'`; overview ruler Right lane) applied by `src/markers.ts` to visible `diff-notes:` editors; lines from pure `markerSpans` (open, non-outdated, same file/origin/side). Colour `diffNotes.overviewRulerMarker` (amber). No line tint/border (clashed with diff green). Refreshed on every persist, re-anchor, and editor visibility/document open.
 - Notes going Outdated when lines change inside their range is accepted (user, 2026-11-07); no fuzzier anchoring planned.
 - Delete: trash on every comment in the note box; a reply goes at once, the first comment deletes the whole note (modal "Delete" confirm only if it has replies); "Delete Note" on list rows, same rule; works in the Outdated view. Pure store ops `remove`/`removeReply`.
@@ -96,3 +96,4 @@
 - ui: Previous/Next Note use circled arrow icons (distinct from VS Code's change arrows) and now step through every note in the diff, open and resolved; opening from Commits still lands on the first open note. Not checked under F5.
 - UI A: note bodies (comments and replies, diff and Outdated view) render as markdown (no commands/HTML); edit box still shows the raw source and stores plain text (not checked under F5). Comments-list tooltip split into rule-separated sections (header, note, replies, code capped at 12 lines).
 - UI B: Comments list labels are plain text (markdown stripped); status icons on notes (comment / check green / cloud-upload / warning) and on groups; commit groups show the subject with the count (sha in the tooltip); "PUSHED" renamed "Pushed".
+- UI C: Commits list file rows drop the git status letter (`src · 1 note`); commit rows show their open-note count (`abc1234 · 2 notes`); wording shortened everywhere.

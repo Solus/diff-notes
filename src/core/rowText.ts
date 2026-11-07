@@ -103,3 +103,13 @@ export function rowLabel(body: string): string {
   }
   return '(empty)';
 }
+
+/** `1 note` / `2 notes`; empty for none. */
+export function noteCount(n: number): string {
+  return n > 0 ? `${n} note${n === 1 ? '' : 's'}` : '';
+}
+
+/** Description parts joined with ` · `, skipping empty ones. */
+export function joinParts(...parts: string[]): string {
+  return parts.filter(Boolean).join(' · ');
+}

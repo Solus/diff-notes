@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { relativeDate, rowDescription, rowLabel, tooltipMarkdown } from '../src/core/rowText';
+import { joinParts, noteCount, relativeDate, rowDescription, rowLabel, tooltipMarkdown } from '../src/core/rowText';
 import { StoredComment } from '../src/core/model';
 
 const c = { file: 'src/deep/a.ts', startLine: 5, endLine: 7, side: 'new' as const };
@@ -51,4 +51,12 @@ test('row label strips markdown', () => {
   assert.equal(rowLabel('```ts\nlet a;\n```'), 'let a;');
   assert.equal(rowLabel('snake_case_name stays'), 'snake_case_name stays');
   assert.equal(rowLabel('  \n'), '(empty)');
+});
+
+test('note count and joined parts', () => {
+  assert.equal(noteCount(0), '');
+  assert.equal(noteCount(1), '1 note');
+  assert.equal(noteCount(2), '2 notes');
+  assert.equal(joinParts('src', noteCount(1)), 'src · 1 note');
+  assert.equal(joinParts('', noteCount(0)), '');
 });
