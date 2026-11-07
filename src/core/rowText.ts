@@ -97,9 +97,10 @@ function mutedBody(escaped: string): string {
 
 /**
  * Blank space around a rule. The hover sanitizer keeps `style` only on `<span>` and only for
- * colour/background/display/border-radius (no margin/height), so spacing is `&nbsp;` paragraphs.
+ * colour/background/display/border-radius (no margin/height), so spacing is a standalone `<br>` block
+ * (allowed by the sanitizer) on each side: one line, no paragraph margins, works after fences and quotes.
  */
-const RULE = '\n\n&nbsp;\n\n---\n\n&nbsp;\n\n';
+const RULE = '\n\n<br>\n\n---\n\n<br>\n\n';
 
 /**
  * Markdown for a note's hover tooltip (needs supportThemeIcons + supportHtml), note first:

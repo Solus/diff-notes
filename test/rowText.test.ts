@@ -37,7 +37,7 @@ test('tooltip markdown', () => {
       `> **bob** — ${M('ok')}`,
       `${M('$(file) src/a.ts · L5–7')}\n\n${M('$(git-commit) abc1234 · subj · Open')}`,
       '```typescript\nlet a;\n```',
-    ].join('\n\n&nbsp;\n\n---\n\n&nbsp;\n\n'),
+    ].join('\n\n<br>\n\n---\n\n<br>\n\n'),
   );
   assert.ok(tooltipMarkdown(n, 'Working tree', now).includes(M('$(edit) Working tree · Open')));
   const two = tooltipMarkdown({ ...n, replies: [{ id: 'r', author: 'bob', createdAt: '2026-01-09T00:00:00Z', body: 'a\nb' }, { id: 's', author: 'al', createdAt: 't', body: 'c' }] }, 'x', now);
