@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { DiffSide, gitRefFor } from './core/diffRef';
 import { ChangedFile, CommitInfo, LOG_FORMAT, mergeWorkingChanges, parseLog, parseNameStatusZ, RawChange } from './core/gitParse';
+import { followRename } from './core/followRename';
 import { API, Change, Repository } from './gitApi';
 
 const MAX_COMMITS = 200;
@@ -106,6 +107,15 @@ export class GitService {
   async commitFiles(sha: string): Promise<ChangedFile[]> {
     const out = await this.run(['diff-tree', '-r', '-M', '-z', '--no-commit-id', '--name-status', '--root', '--diff-merges=first-parent', sha]);
     return parseNameStatusZ(out);
+  }
+
+  /** Current working-tree path of `file` as it was at `base` (rename-aware; unchanged if git can't tell). */
+  async currentPath(base: string, file: string): Promise<{ path: string; deleted: boolean }> {
+    try {
+      return followRename(parseNameStatusZ(await this.run(['diff', '-M', '-z', '--name-status', base, '--'])), file);
+    } catch {
+      return { path: file, deleted: false };
+    }
   }
 
   /** Uncommitted changes (staged, unstaged, untracked) relative to HEAD. */

@@ -240,6 +240,14 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     }
   });
   /** Opens the working-tree file; `pick` chooses the 0-based line from its text. Missing file -> info message. */
+  /** Follows renames up to the working tree: base is the commit (new side) or its parent / HEAD (old side). */
+  const resolveCurrent = async (file: string, origin: string, side: 'old' | 'new'): Promise<string> => {
+    if (side === 'new' && origin === WORKING_TREE) {
+      return file;
+    }
+    const base = origin === WORKING_TREE ? 'HEAD' : side === 'old' ? `${origin}^` : origin;
+    return (await git.currentPath(base, file)).path;
+  };
   const openWorking = async (file: string, pick: (text: string) => { line: number; found: boolean }, miss: string): Promise<void> => {
     const uri = vscode.Uri.file(path.join(git.root, ...file.split('/')));
     let text: string;
@@ -259,7 +267,7 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
   reg('diffNotes.openFile', async (arg: vscode.CommentThread | { comment?: StoredComment } | string) => {
     const c = typeof arg === 'string' ? store.get(arg) : 'comment' in arg && arg.comment ? arg.comment : store.get(notes.idOf(arg as vscode.CommentThread) ?? '');
     if (c) {
-      await openWorking(c.file, text => findOpenLine(c.snippet, c.startLine, text), "Diff Notes: Note's code not found in current file — opened at stored line");
+      await openWorking(await resolveCurrent(c.file, c.origin, c.side), text => findOpenLine(c.snippet, c.startLine, text), "Diff Notes: Note's code not found in current file — opened at stored line");
     }
   });
   reg('diffNotes.openDiffFile', async () => {
@@ -278,7 +286,7 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
       return out;
     };
     const snippet = { before: grab(cur - 3, cur), lines: grab(cur, cur + 1), after: grab(cur + 1, cur + 4) };
-    await openWorking(d.file, text => findOpenLine(snippet, cur + 1, text), 'Diff Notes: Cursor line not found in current file — opened at same line number');
+    await openWorking(await resolveCurrent(d.file, d.origin, d.side), text => findOpenLine(snippet, cur + 1, text), 'Diff Notes: Cursor line not found in current file — opened at same line number');
   });
   reg('diffNotes.openCommitFile', async (node: { file?: ChangedFile }) => {
     if (node?.file) {
