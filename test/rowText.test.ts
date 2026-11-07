@@ -46,7 +46,7 @@ test('tooltip markdown', () => {
   const long = tooltipMarkdown({ ...n, snippet: { before: [], after: [], lines: Array.from({ length: 8 }, (_, i) => 'l' + i) } }, 'x', now);
   assert.ok(long.includes('l4\n```\n\n' + M('… 3 more lines')) && !long.includes('l5'));
   const evil = tooltipMarkdown({ ...n, author: '$(x)<b>', body: '<img src=x> $(bug)\n```\n<b> $(k)\n```' }, 'abc $(sub)', now);
-  assert.ok(evil.includes('\$(x)\<b\>') && evil.includes('\<img src=x> \$(bug)') && evil.includes('\n<b> $(k)\n') && evil.includes('abc · \$(sub)'));
+  assert.ok(evil.includes('\\$(x)\\<b\\>') && evil.includes('\\<img src=x> \\$(bug)') && evil.includes('\n<b> $(k)\n') && evil.includes('abc · \\$(sub)'));
 });
 
 test('row label strips markdown', () => {
