@@ -136,6 +136,16 @@ export class NotesController implements vscode.Disposable {
     }
   }
 
+  /** Expand only the note `keep` among `ids` (the open notes of one diff); collapse the rest. */
+  focusOnly(ids: string[], keep: string): void {
+    for (const id of ids) {
+      const t = this.threads.get(id);
+      if (t) {
+        t.collapsibleState = id === keep ? vscode.CommentThreadCollapsibleState.Expanded : vscode.CommentThreadCollapsibleState.Collapsed;
+      }
+    }
+  }
+
   /** Id of the stored comment behind a thread. */
   idOf(thread: vscode.CommentThread): string | undefined {
     return this.threadIds.get(thread);

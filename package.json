@@ -63,6 +63,8 @@
       { "command": "diffNotes.openDiffFile", "title": "Open File", "category": "Diff Notes", "icon": "$(go-to-file)" },
       { "command": "diffNotes.openCommitFile", "title": "Open File", "category": "Diff Notes", "icon": "$(go-to-file)" },
       { "command": "diffNotes.openCurrentDiff", "title": "Open Current Diff", "category": "Diff Notes", "icon": "$(diff)" },
+      { "command": "diffNotes.previousNote", "title": "Previous Note", "category": "Diff Notes", "icon": "$(arrow-up)" },
+      { "command": "diffNotes.nextNote", "title": "Next Note", "category": "Diff Notes", "icon": "$(arrow-down)" },
       { "command": "diffNotes.refresh", "title": "Refresh", "category": "Diff Notes", "icon": "$(refresh)" },
       { "command": "diffNotes.openDiff", "title": "Open Diff", "category": "Diff Notes" },
       { "command": "diffNotes.createComment", "title": "Add Note", "category": "Diff Notes" },
@@ -80,6 +82,10 @@
       { "command": "diffNotes.deleteResolved", "title": "Delete All Resolved", "category": "Diff Notes" },
       { "command": "diffNotes.deletePushed", "title": "Delete All Pushed", "category": "Diff Notes" },
       { "command": "diffNotes.deleteOutdated", "title": "Delete All Outdated", "category": "Diff Notes" }
+    ],
+    "keybindings": [
+      { "command": "diffNotes.nextNote", "key": "alt+n", "when": "isInDiffEditor && resourceScheme == diff-notes" },
+      { "command": "diffNotes.previousNote", "key": "alt+p", "when": "isInDiffEditor && resourceScheme == diff-notes" }
     ],
     "submenus": [
       { "id": "diffNotes.groupBySubmenu", "label": "Group By", "icon": "$(list-tree)" }
@@ -112,6 +118,8 @@
         { "command": "diffNotes.reply", "when": "commentController == diffNotes && !commentThreadIsEmpty", "group": "inline@1" }
       ],
       "editor/title": [
+        { "command": "diffNotes.previousNote", "when": "resourceScheme == diff-notes", "group": "navigation@1" },
+        { "command": "diffNotes.nextNote", "when": "resourceScheme == diff-notes", "group": "navigation@2" },
         { "command": "diffNotes.openDiffFile", "when": "resourceScheme == diff-notes", "group": "navigation" }
       ],
       "comments/commentThread/title": [
@@ -129,6 +137,8 @@
         { "command": "diffNotes.cancelEdit", "when": "commentController == diffNotes", "group": "inline@2" }
       ],
       "commandPalette": [
+        { "command": "diffNotes.previousNote", "when": "resourceScheme == diff-notes" },
+        { "command": "diffNotes.nextNote", "when": "resourceScheme == diff-notes" },
         { "command": "diffNotes.openDiff", "when": "false" },
         { "command": "diffNotes.openComment", "when": "false" },
         { "command": "diffNotes.openCurrentDiff", "when": "false" },

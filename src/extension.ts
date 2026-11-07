@@ -12,6 +12,7 @@ import { ChangedFile } from './core/gitParse';
 import { CommentStore } from './core/store';
 import { StoredComment, WORKING_TREE } from './core/model';
 import { findOpenLine } from './core/openLine';
+import { pickNote } from './core/noteNav';
 import { countNotes, notesToMarkdown } from './core/markdown';
 import { diffUri, parseDiffUri } from './diffUri';
 import { GitService } from './git';
@@ -180,10 +181,70 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
 
   const reg = (id: string, fn: (...args: any[]) => unknown) => ctx.subscriptions.push(vscode.commands.registerCommand(id, fn));
   reg('diffNotes.refresh', () => commits.refresh());
-  reg('diffNotes.openDiff', (origin: string, originLabel: string, file: ChangedFile) => {
+  /** Open (not resolved, not outdated) notes whose thread sits on one of these diff document URIs. */
+  const openNotesIn = (uris: string[]): StoredComment[] =>
+    store.all().filter(c => !c.outdated && c.status === 'open' && uris.includes(diffUri({ file: c.file, origin: c.origin, side: c.side }).toString()));
+  /** Both document URIs of the diff in the active tab, if it is one of ours. */
+  const currentDiffUris = (): string[] | undefined => {
+    const i = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+    return i instanceof vscode.TabInputTextDiff && parseDiffUri(i.modified) ? [i.original.toString(), i.modified.toString()] : undefined;
+  };
+  const findEditor = async (uri: string): Promise<vscode.TextEditor | undefined> => {
+    for (let i = 0; i < 20; i++) {
+      const ed = vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === uri);
+      if (ed) {
+        return ed;
+      }
+      await new Promise(r => setTimeout(r, 50));
+    }
+    return undefined;
+  };
+  /** Focus the note's side, put the cursor (no selection) on its first line, reveal it, expand only its box. */
+  const goToNote = async (c: StoredComment, diffUris: string[]): Promise<boolean> => {
+    const target = diffUri({ file: c.file, origin: c.origin, side: c.side }).toString();
+    const ed = await findEditor(target);
+    if (!ed) {
+      return false;
+    }
+    const active = vscode.window.activeTextEditor;
+    if (active && active !== ed && diffUris.includes(active.document.uri.toString())) {
+      await Promise.resolve(vscode.commands.executeCommand('workbench.action.compareEditor.focusOtherSide')).then(undefined, () => undefined);
+    }
+    const pos = new vscode.Position(c.startLine - 1, 0);
+    ed.selection = new vscode.Selection(pos, pos);
+    ed.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+    notes.focusOnly(openNotesIn(diffUris).map(x => x.id), c.id);
+    return true;
+  };
+  const stepNote = async (dir: 1 | -1): Promise<void> => {
+    const uris = currentDiffUris();
+    if (!uris) {
+      return;
+    }
+    const ed = vscode.window.activeTextEditor;
+    const d = ed && uris.includes(ed.document.uri.toString()) ? parseDiffUri(ed.document.uri) : undefined;
+    const cursor = ed && d ? { side: d.side, line: ed.selection.active.line + 1 } : undefined;
+    const { note, wrapped } = pickNote(openNotesIn(uris), cursor, dir);
+    if (!note) {
+      vscode.window.setStatusBarMessage('Diff Notes: no open notes in this diff', 3000);
+      return;
+    }
+    await goToNote(note, uris);
+    if (wrapped) {
+      vscode.window.setStatusBarMessage(dir === 1 ? 'Diff Notes: wrapped to first note' : 'Diff Notes: wrapped to last note', 3000);
+    }
+  };
+  reg('diffNotes.nextNote', () => stepNote(1));
+  reg('diffNotes.previousNote', () => stepNote(-1));
+  reg('diffNotes.openDiff', async (origin: string, originLabel: string, file: ChangedFile) => {
     const left = diffUri({ file: file.oldPath ?? file.path, origin, side: 'old' });
     const right = diffUri({ file: file.path, origin, side: 'new' });
-    return vscode.commands.executeCommand('vscode.diff', left, right, `${path.posix.basename(file.path)} (${originLabel})`);
+    await vscode.commands.executeCommand('vscode.diff', left, right, `${path.posix.basename(file.path)} (${originLabel})`);
+    // Without this, VS Code only scrolls to a note when the diff happens to hold exactly one.
+    const first = pickNote(openNotesIn([left.toString(), right.toString()]), undefined, 1).note;
+    if (first) {
+      await goToNote(first, [left.toString(), right.toString()]);
+    }
   });
   reg('diffNotes.openOnly', () => {
     commentsView.openOnly = true;
@@ -210,14 +271,12 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     const newPath = c.side === 'new' ? c.file : (f?.path ?? c.file);
     const oldPath = c.side === 'old' ? c.file : (f?.oldPath ?? c.file);
     const label = c.origin === WORKING_TREE ? 'Working Tree' : c.origin.slice(0, 7);
-    await vscode.commands.executeCommand(
-      'vscode.diff',
-      diffUri({ file: oldPath, origin: c.origin, side: 'old' }),
-      diffUri({ file: newPath, origin: c.origin, side: 'new' }),
-      `${path.posix.basename(newPath)} (${label})`,
-      { selection: new vscode.Range(c.startLine - 1, 0, c.startLine - 1, 0) },
-    );
-    notes.expand(c.id);
+    const left = diffUri({ file: oldPath, origin: c.origin, side: 'old' });
+    const right = diffUri({ file: newPath, origin: c.origin, side: 'new' });
+    await vscode.commands.executeCommand('vscode.diff', left, right, `${path.posix.basename(newPath)} (${label})`);
+    if (!(await goToNote(c, [left.toString(), right.toString()]))) {
+      notes.expand(c.id);
+    }
   };
   reg('diffNotes.openComment', async (id: string) => {
     const c = store.get(id);
