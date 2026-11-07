@@ -45,7 +45,7 @@
 - Group-by choice is saved in workspaceState (`diffNotes.groupBy`); Open-only stays on at start (SPEC: on by default).
 - Renames: a comment on a renamed file follows it (new side only; working tree and landing/rewritten commits) and its stored `file` is updated. Deleted files: new-side comments go outdated; old-side comments on a commit stay.
 - Commits view shows ` · N open notes` on working tree, commit and file rows (open, non-outdated only).
-- Markers: one decoration type (whole-line tint, 2px left bar (`diffNotes.commentedLineBorder`), overview ruler Right lane) applied by `src/markers.ts` to visible `diff-notes:` editors; lines from pure `markerSpans` (open, non-outdated, same file/origin/side). Colours `diffNotes.commentedLineBackground` / `diffNotes.overviewRulerMarker` (amber, low alpha). Refreshed on every persist, re-anchor, and editor visibility/document open.
+- Markers: one decoration type (amber gutter stripe from `media/note-stripe-{light,dark}.svg`, stretched via `gutterIconSize: '100% 100%'`; overview ruler Right lane) applied by `src/markers.ts` to visible `diff-notes:` editors; lines from pure `markerSpans` (open, non-outdated, same file/origin/side). Colour `diffNotes.overviewRulerMarker` (amber). No line tint/border (clashed with diff green). Refreshed on every persist, re-anchor, and editor visibility/document open.
 
 ## Log
 - S1 built: scaffold, Commits view (working tree + unpushed commits + files), native diff, notes create/edit/reply/resolve/reopen, JSON in `.git/diff-notes/`, reload on start.
@@ -75,4 +75,4 @@
 - S8 built: amber line tint, gutter note icon and scrollbar marks for open notes on both diff sides; two contributed theme colours with light/dark/HC defaults; 1 test.
 - S8 decided: resolved and outdated notes get no marker; refresh piggybacks on persist and re-anchor.
 - S8 open: not checked in a running VS Code (F5): gutter icon (glyph margin) vs VS Code's "+" (line-decoration strip) are different columns so should coexist, unverified; a pending unsaved draft box gets no marker until saved.
-- S8 follow-up: dropped our gutter icon (duplicated VS Code's comment glyph) for a 2px amber left bar on every line of the range (new colour `diffNotes.commentedLineBorder`); not yet eyeballed under F5.
+- S8 follow-up: tint and left border replaced by a full-line-height amber gutter stripe (light/dark SVGs); VS Code's own comment glyph may cover the stripe on the anchor line (accepted); not yet eyeballed under F5.
