@@ -49,3 +49,16 @@ test('pushed group comes before outdated, in every mode', () => {
     assert.deepEqual(groupComments([...all, out], mode, order).slice(-2).map(x => x.kind), ['pushed', 'outdated']);
   }
 });
+
+test('file mode splits PUSHED and Outdated into per-file sub-groups; other modes do not', () => {
+  const out = { ...mk('x', 'z.ts', 1), outdated: true };
+  const list = [mk('gone', 'b.ts', 4), mk('gone', 'a.ts', 9), mk('gone', 'b.ts', 2), out];
+  const g = groupComments(list, 'file', order);
+  assert.deepEqual(g.map(x => [x.kind, x.files?.map(f => [f.key, f.comments.length])]), [
+    ['pushed', [['a.ts', 1], ['b.ts', 2]]], ['outdated', [['z.ts', 1]]],
+  ]);
+  assert.equal(g[0].comments.length, 3);
+  for (const mode of ['commit', 'none'] as const) {
+    assert.ok(groupComments(list, mode, order).every(x => x.files === undefined));
+  }
+});

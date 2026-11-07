@@ -49,3 +49,14 @@ test('visibleList follows filter and mode', () => {
   assert.deepEqual(none.groups.map(g => g.kind), ['pushed', 'outdated']);
   assert.equal(visibleList(all, false, 'file', ['abc1234def']).groups[0].comments.length, 2);
 });
+
+test('subsections render as ### under the section heading', () => {
+  const a = mk('a', { origin: WORKING_TREE, replies: [], snippet: NO_CODE, body: 'one' });
+  const b = mk('b', { origin: WORKING_TREE, replies: [], snippet: NO_CODE, body: 'two', file: 'src/b.ts' });
+  const secs = [{ heading: 'PUSHED', notes: [a, b], subsections: [{ heading: 'src/a.ts', notes: [a] }, { heading: 'src/b.ts', notes: [b] }] }];
+  assert.equal(
+    notesToMarkdown(secs, label),
+    '## PUSHED\n\n### src/a.ts\n\n- [ ] src/a.ts:L5-7 (Working tree) — one\n\n### src/b.ts\n\n- [ ] src/b.ts:L5-7 (Working tree) — two\n',
+  );
+  assert.equal(countNotes(secs), 2);
+});

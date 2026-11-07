@@ -4,7 +4,10 @@ import { StoredComment, WORKING_TREE } from './model';
 export interface MdSection {
   /** `## heading`; omitted for loose (ungrouped) notes. */
   heading?: string;
+  /** All notes of the section (used for counting). */
   notes: StoredComment[];
+  /** If set, rendered instead of `notes`, each as `### heading`. */
+  subsections?: MdSection[];
 }
 
 const LANGS: Record<string, string> = {
@@ -62,7 +65,14 @@ export function notesToMarkdown(sections: readonly MdSection[], commitLabel: (or
   return (
     sections
       .filter(s => s.notes.length > 0)
-      .map(s => [...(s.heading !== undefined ? [`## ${s.heading}`, ''] : []), s.notes.map(n => noteToMarkdown(n, commitLabel)).join('\n')].join('\n'))
+      .map(s =>
+        [
+          ...(s.heading !== undefined ? [`## ${s.heading}`, ''] : []),
+          s.subsections?.length
+            ? s.subsections.filter(x => x.notes.length > 0).map(x => `### ${x.heading}\n\n${x.notes.map(n => noteToMarkdown(n, commitLabel)).join('\n')}`).join('\n\n')
+            : s.notes.map(n => noteToMarkdown(n, commitLabel)).join('\n'),
+        ].join('\n'),
+      )
       .join('\n\n') + '\n'
   );
 }

@@ -10,6 +10,7 @@ test('row description by grouping', () => {
   assert.equal(rowDescription('commit', c, 'abc1234'), 'a.ts L5–7');
   assert.equal(rowDescription('worktree', c, 'Working tree'), 'a.ts L5–7');
   assert.equal(rowDescription(undefined, c, 'abc1234'), 'a.ts L5–7 · abc1234');
+  assert.equal(rowDescription('nested', c, 'abc1234'), 'L5–7 · abc1234');
   assert.equal(rowDescription('pushed', c, 'abc1234'), 'a.ts L5–7 · abc1234');
   assert.equal(rowDescription('outdated', { ...c, endLine: 5 }, 'abc1234'), 'a.ts L5 · abc1234');
 });

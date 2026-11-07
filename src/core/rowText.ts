@@ -2,13 +2,14 @@
 import { languageOf } from './markdown';
 import { rangeLabel, StoredComment } from './model';
 
-export type RowGroup = 'file' | 'commit' | 'worktree' | 'pushed' | 'outdated' | undefined;
+export type RowGroup = 'file' | 'commit' | 'worktree' | 'pushed' | 'outdated' | 'nested' | undefined;
 
 const baseName = (file: string): string => file.slice(file.lastIndexOf('/') + 1);
 
 /**
  * Row description by the group the note sits in (undefined = ungrouped list).
  * File group: `L5–7`. Commit/working-tree group: `a.ts L5–7`. Ungrouped: `a.ts L5–7 · abc1234`.
+ * Under a file sub-heading inside Pushed/Outdated (`nested`): `L5–7 · abc1234`.
  * Pushed/Outdated groups are not the commit or file themselves, so they get file name and short sha.
  */
 export function rowDescription(group: RowGroup, c: Pick<StoredComment, 'file' | 'startLine' | 'endLine' | 'side'>, shortSha: string): string {
@@ -16,6 +17,8 @@ export function rowDescription(group: RowGroup, c: Pick<StoredComment, 'file' | 
   switch (group) {
     case 'file':
       return range;
+    case 'nested':
+      return `${range} · ${shortSha}`;
     case 'commit':
     case 'worktree':
       return `${baseName(c.file)} ${range}`;

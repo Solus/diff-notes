@@ -6,7 +6,7 @@ import { StoredComment, WORKING_TREE } from './core/model';
 import { CommentStore } from './core/store';
 import { GitService } from './git';
 
-export type Node = { kind: 'group'; group: CommentGroup; label: string } | { kind: 'comment'; comment: StoredComment; group: RowGroup };
+export type Node = { kind: 'group'; group: CommentGroup; label: string; nested?: boolean } | { kind: 'comment'; comment: StoredComment; group: RowGroup };
 
 export const GROUP_LABELS: Record<GroupMode, string> = { commit: 'Commit', file: 'File', none: 'None' };
 
@@ -32,7 +32,13 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
 
   async getChildren(node?: Node): Promise<Node[]> {
     if (node) {
-      return node.kind === 'group' ? node.group.comments.map(comment => ({ kind: 'comment', comment, group: node.group.kind })) : [];
+      if (node.kind !== 'group') {
+        return [];
+      }
+      if (node.group.files) {
+        return node.group.files.map(group => ({ kind: 'group' as const, group, label: this.groupLabel(group), nested: true }));
+      }
+      return node.group.comments.map(comment => ({ kind: 'comment' as const, comment, group: node.nested ? ('nested' as const) : node.group.kind }));
     }
     if (!this.git) {
       return [];
@@ -55,7 +61,7 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
   async sections(): Promise<{ sections: MdSection[]; commitLabel: (origin: string) => string }> {
     const { order } = await this.load();
     const { loose, groups } = visibleList(this.store.all(), this.openOnly, this.mode, order);
-    const sections: MdSection[] = [{ notes: loose }, ...groups.map(g => ({ heading: this.groupLabel(g), notes: g.comments }))];
+    const sections: MdSection[] = [{ notes: loose }, ...groups.map(g => this.section(g))];
     return { sections, commitLabel: await this.labeller(sections.flatMap(s => s.notes.map(n => n.origin))) };
   }
 
@@ -75,7 +81,7 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
   /** Same as `sections` for one group row or one note row. */
   async sectionsFor(node: Node): Promise<{ sections: MdSection[]; commitLabel: (origin: string) => string }> {
     await this.load();
-    const sections: MdSection[] = node.kind === 'group' ? [{ heading: node.label, notes: node.group.comments }] : [{ notes: [node.comment] }];
+    const sections: MdSection[] = node.kind === 'group' ? [this.section(node.group)] : [{ notes: [node.comment] }];
     return { sections, commitLabel: await this.labeller(sections.flatMap(s => s.notes.map(n => n.origin))) };
   }
 
@@ -103,6 +109,10 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
 
   dispose(): void {
     this.changed.dispose();
+  }
+
+  private section(g: CommentGroup): MdSection {
+    return { heading: this.groupLabel(g), notes: g.comments, subsections: g.files?.map(f => this.section(f)) };
   }
 
   private originLabel(origin: string): string {

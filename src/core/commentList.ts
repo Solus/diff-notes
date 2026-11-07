@@ -14,6 +14,8 @@ export interface CommentGroup {
   /** Commit SHA, `working-tree`, or file path. */
   key: string;
   comments: StoredComment[];
+  /** PUSHED / Outdated group in File mode: its notes split into per-file sub-groups, sorted by path. */
+  files?: CommentGroup[];
 }
 
 export function filterComments(all: readonly StoredComment[], openOnly: boolean): StoredComment[] {
@@ -52,6 +54,20 @@ export function sortComments(comments: readonly StoredComment[], order: readonly
   );
 }
 
+/** Per-file groups, sorted by path; notes in a group by commit-list order, then line. */
+export function splitByFile(comments: readonly StoredComment[], order: readonly string[]): CommentGroup[] {
+  const out: CommentGroup[] = [];
+  for (const c of [...comments].sort((a, b) => a.file.localeCompare(b.file) || originRank(a.origin, order) - originRank(b.origin, order) || a.startLine - b.startLine)) {
+    let g = out[out.length - 1];
+    if (!g || g.key !== c.file) {
+      g = { kind: 'file', key: c.file, comments: [] };
+      out.push(g);
+    }
+    g.comments.push(c);
+  }
+  return out;
+}
+
 /**
  * Groups for the chosen mode. `order` = unpushed commit SHAs, newest first (the Commits list order).
  * Comments on pushed commits form a PUSHED group and outdated ones an Outdated group
@@ -63,11 +79,17 @@ export function groupComments(comments: readonly StoredComment[], mode: GroupMod
   const pushed = comments.filter(c => isPushed(c, order));
   const sorted = sortComments(comments.filter(c => !c.outdated && !isPushed(c, order)), order);
   const groups: CommentGroup[] = [];
-  const tail = (): CommentGroup[] => [
-    ...groups,
-    ...(pushed.length ? [{ kind: 'pushed' as const, key: PUSHED_KEY, comments: sortComments(pushed, order) }] : []),
-    ...(outdated.length ? [{ kind: 'outdated' as const, key: OUTDATED_KEY, comments: sortComments(outdated, order) }] : []),
-  ];
+  const special = (kind: 'pushed' | 'outdated', key: string, list: StoredComment[]): CommentGroup[] => {
+    if (!list.length) {
+      return [];
+    }
+    const g: CommentGroup = { kind, key, comments: sortComments(list, order) };
+    if (mode === 'file') {
+      g.files = splitByFile(list, order);
+    }
+    return [g];
+  };
+  const tail = (): CommentGroup[] => [...groups, ...special('pushed', PUSHED_KEY, pushed), ...special('outdated', OUTDATED_KEY, outdated)];
   if (mode === 'none') {
     return tail();
   }

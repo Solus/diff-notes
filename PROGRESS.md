@@ -87,3 +87,4 @@
 - Copy built: Copy Notes title button, Copy on group and note rows, "Copied N notes" status message; 5 tests. Not checked under F5 (clipboard paste, button order).
 - ui: Group By is now a title-bar dropdown (submenu with Commit/File/None, check mark on current via `diffNotes.groupMode` context key); old quick pick removed. Not checked under F5.
 - ui: denser comment rows (description trimmed by group mode, pure `src/core/rowText.ts`) and rich markdown tooltips (path, commit, status, author/age, body, replies, snippet). Not checked under F5.
+- ui: in Group by File, PUSHED and Outdated hold per-file sub-headings (rows show `L5–7 · sha`); Copy Notes / group Copy emit `###` sub-headings, sub-heading Copy copies one file. Not checked under F5.
