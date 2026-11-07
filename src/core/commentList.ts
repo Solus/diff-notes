@@ -3,18 +3,18 @@ import { StoredComment, WORKING_TREE } from './model';
 
 /** Key of the Outdated group. */
 export const OUTDATED_KEY = 'outdated';
-/** Key of the PUSHED group. */
-export const PUSHED_KEY = 'pushed';
+/** Key of the Pushed group. */
+export const Pushed_KEY = 'pushed';
 
 export type GroupMode = 'commit' | 'file' | 'none';
 
 export interface CommentGroup {
-  /** Working tree, a commit, a file, or the PUSHED / Outdated group. */
+  /** Working tree, a commit, a file, or the Pushed / Outdated group. */
   kind: 'worktree' | 'commit' | 'file' | 'pushed' | 'outdated';
   /** Commit SHA, `working-tree`, or file path. */
   key: string;
   comments: StoredComment[];
-  /** PUSHED / Outdated group in File mode: its notes split into per-file sub-groups, sorted by path. */
+  /** Pushed / Outdated group in File mode: its notes split into per-file sub-groups, sorted by path. */
   files?: CommentGroup[];
 }
 
@@ -70,7 +70,7 @@ export function splitByFile(comments: readonly StoredComment[], order: readonly 
 
 /**
  * Groups for the chosen mode. `order` = unpushed commit SHAs, newest first (the Commits list order).
- * Comments on pushed commits form a PUSHED group and outdated ones an Outdated group
+ * Comments on pushed commits form a Pushed group and outdated ones an Outdated group
  * (in that order, last), in every mode. Mode `none` returns only those groups: use
  * `sortComments` on the rest for the flat list.
  */
@@ -89,7 +89,7 @@ export function groupComments(comments: readonly StoredComment[], mode: GroupMod
     }
     return [g];
   };
-  const tail = (): CommentGroup[] => [...groups, ...special('pushed', PUSHED_KEY, pushed), ...special('outdated', OUTDATED_KEY, outdated)];
+  const tail = (): CommentGroup[] => [...groups, ...special('pushed', Pushed_KEY, pushed), ...special('outdated', OUTDATED_KEY, outdated)];
   if (mode === 'none') {
     return tail();
   }

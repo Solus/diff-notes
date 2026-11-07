@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { relativeDate, rowDescription, tooltipMarkdown } from '../src/core/rowText';
+import { relativeDate, rowDescription, rowLabel, tooltipMarkdown } from '../src/core/rowText';
 import { StoredComment } from '../src/core/model';
 
 const c = { file: 'src/deep/a.ts', startLine: 5, endLine: 7, side: 'new' as const };
@@ -42,4 +42,13 @@ test('tooltip markdown', () => {
   assert.ok(!tooltipMarkdown({ ...n, replies: [] }, 'x', now).includes('Replies'));
   const long = tooltipMarkdown({ ...n, snippet: { before: [], after: [], lines: Array.from({ length: 15 }, (_, i) => 'l' + i) } }, 'x', now);
   assert.ok(long.includes('l11\n```\n\n… 3 more lines') && !long.includes('l12'));
+});
+
+test('row label strips markdown', () => {
+  assert.equal(rowLabel('**Fix** the `foo()` call'), 'Fix the foo() call');
+  assert.equal(rowLabel('\n\n## Heading *x*'), 'Heading x');
+  assert.equal(rowLabel('- [docs](http://x.y) and _more_'), 'docs and more');
+  assert.equal(rowLabel('```ts\nlet a;\n```'), 'let a;');
+  assert.equal(rowLabel('snake_case_name stays'), 'snake_case_name stays');
+  assert.equal(rowLabel('  \n'), '(empty)');
 });

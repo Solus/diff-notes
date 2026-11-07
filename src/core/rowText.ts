@@ -76,3 +76,30 @@ export function tooltipMarkdown(c: StoredComment, commit: string, now: number): 
   }
   return sections.join('\n\n---\n\n');
 }
+
+/** One line of markdown as plain text: no emphasis, code ticks, heading/list/quote markers; links keep their text. */
+export function stripMarkdownLine(line: string): string {
+  return line
+    .replace(/^\s*(#{1,6}\s+|>\s?|[-*+]\s+|\d+[.)]\s+)/, '')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/(\*\*|__)(.+?)\1/g, '$2')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/(^|\W)_(.+?)_(?=\W|$)/g, '$1$2')
+    .replace(/~~(.+?)~~/g, '$1')
+    .replace(/`+([^`]*)`+/g, '$1')
+    .trim();
+}
+
+/** Row label of a note: its first non-empty line as plain text. Fence lines are skipped. */
+export function rowLabel(body: string): string {
+  for (const line of body.split(/\r?\n/)) {
+    if (/^\s*(```|~~~)/.test(line)) {
+      continue;
+    }
+    const t = stripMarkdownLine(line);
+    if (t) {
+      return t;
+    }
+  }
+  return '(empty)';
+}

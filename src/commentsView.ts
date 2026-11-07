@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { CommentGroup, GroupMode, visibleList } from './core/commentList';
 import { MdSection, shortOrigin } from './core/markdown';
-import { RowGroup, rowDescription, tooltipMarkdown } from './core/rowText';
+import { RowGroup, rowDescription, rowLabel, tooltipMarkdown } from './core/rowText';
 import { StoredComment, WORKING_TREE } from './core/model';
 import { CommentStore } from './core/store';
 import { GitService } from './git';
@@ -90,18 +90,36 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
       const g = node.group;
       const item = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.Expanded);
       item.description = String(g.comments.length);
-      item.iconPath = new vscode.ThemeIcon(g.kind === 'worktree' ? 'edit' : g.kind === 'file' ? 'file' : g.kind === 'outdated' ? 'history' : g.kind === 'pushed' ? 'repo-pushed' : 'git-commit');
+      switch (g.kind) {
+        case 'worktree':
+          item.iconPath = new vscode.ThemeIcon('edit');
+          break;
+        case 'commit':
+          item.iconPath = new vscode.ThemeIcon('git-commit');
+          item.tooltip = this.subjects.get(g.key) ?? g.key;
+          break;
+        case 'file':
+          item.iconPath = vscode.ThemeIcon.File;
+          item.resourceUri = this.git ? vscode.Uri.file(this.git.abs(g.key)) : undefined;
+          item.tooltip = g.key;
+          break;
+        case 'pushed':
+          item.iconPath = new vscode.ThemeIcon('cloud-upload');
+          break;
+        case 'outdated':
+          item.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('list.warningForeground'));
+          break;
+      }
       item.contextValue = 'commentGroup';
       return item;
     }
     const c = node.comment;
-    const first = c.body.split(/\r?\n/).find(l => l.trim()) ?? '(empty)';
-    const item = new vscode.TreeItem(first.trim(), vscode.TreeItemCollapsibleState.None);
+    const item = new vscode.TreeItem(rowLabel(c.body),vscode.TreeItemCollapsibleState.None);
     item.description = rowDescription(node.group, c, this.originLabel(c.origin));
     const tip = new vscode.MarkdownString(tooltipMarkdown(c, c.origin === WORKING_TREE ? 'Working tree' : (this.subjects.get(c.origin) ?? shortOrigin(c.origin)), Date.now()));
     tip.supportThemeIcons = false;
     item.tooltip = tip;
-    item.iconPath = new vscode.ThemeIcon(c.status === 'resolved' ? 'check' : c.outdated ? 'warning' : 'comment');
+    item.iconPath = this.noteIcon(c, node.group);
     item.contextValue = c.status;
     item.command = { command: 'diffNotes.openComment', title: 'Open Comment', arguments: [c.id] };
     return item;
@@ -111,22 +129,40 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
     this.changed.dispose();
   }
 
+  private noteIcon(c: StoredComment, group: RowGroup): vscode.ThemeIcon {
+    if (c.outdated) {
+      return new vscode.ThemeIcon('warning', new vscode.ThemeColor('list.warningForeground'));
+    }
+    if (group === 'pushed' || group === 'nested' || (group === undefined && this.isPushed(c))) {
+      return new vscode.ThemeIcon('cloud-upload');
+    }
+    return c.status === 'resolved' ? new vscode.ThemeIcon('check', new vscode.ThemeColor('testing.iconPassed')) : new vscode.ThemeIcon('comment');
+  }
+
+  private isPushed(c: StoredComment): boolean {
+    return c.origin !== WORKING_TREE && !this.subjects.has(c.origin);
+  }
+
   private section(g: CommentGroup): MdSection {
-    return { heading: this.groupLabel(g), notes: g.comments, subsections: g.files?.map(f => this.section(f)) };
+    return { heading: this.groupLabel(g, true), notes: g.comments, subsections: g.files?.map(f => this.section(f)) };
   }
 
   private originLabel(origin: string): string {
     return origin === WORKING_TREE ? 'Working tree' : (this.subjects.get(origin)?.split(' ')[0] ?? origin.slice(0, 7));
   }
 
-  private groupLabel(g: CommentGroup): string {
+  /** Tree label of a group: commit groups show just the subject; markdown headings keep `sha subject`. */
+  private groupLabel(g: CommentGroup, withSha = false): string {
     switch (g.kind) {
       case 'worktree':
         return 'Working tree';
       case 'commit':
-        return this.subjects.get(g.key) ?? g.key.slice(0, 7);
+      {
+        const full = this.subjects.get(g.key);
+        return full ? (withSha ? full : full.slice(full.indexOf(' ') + 1)) : g.key.slice(0, 7);
+      }
       case 'pushed':
-        return 'PUSHED';
+        return 'Pushed';
       case 'file':
         return g.key;
       case 'outdated':

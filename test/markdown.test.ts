@@ -29,7 +29,7 @@ test('resolved is checked, single line has no range, longer fence if code has ba
 test('sections: headings only when given; empty sections skipped; count', () => {
   const secs = [
     { notes: [mk('a', { replies: [], snippet: NO_CODE, body: 'one' })] },
-    { heading: 'PUSHED', notes: [] },
+    { heading: 'Pushed', notes: [] },
     { heading: 'Working tree', notes: [mk('b', { origin: WORKING_TREE, replies: [], snippet: NO_CODE, body: 'two' })] },
   ];
   assert.equal(notesToMarkdown(secs, label), '- [ ] src/a.ts:L5-7 (abc1234 subj) — one\n\n## Working tree\n\n- [ ] src/a.ts:L5-7 (Working tree) — two\n');
@@ -53,10 +53,10 @@ test('visibleList follows filter and mode', () => {
 test('subsections render as ### under the section heading', () => {
   const a = mk('a', { origin: WORKING_TREE, replies: [], snippet: NO_CODE, body: 'one' });
   const b = mk('b', { origin: WORKING_TREE, replies: [], snippet: NO_CODE, body: 'two', file: 'src/b.ts' });
-  const secs = [{ heading: 'PUSHED', notes: [a, b], subsections: [{ heading: 'src/a.ts', notes: [a] }, { heading: 'src/b.ts', notes: [b] }] }];
+  const secs = [{ heading: 'Pushed', notes: [a, b], subsections: [{ heading: 'src/a.ts', notes: [a] }, { heading: 'src/b.ts', notes: [b] }] }];
   assert.equal(
     notesToMarkdown(secs, label),
-    '## PUSHED\n\n### src/a.ts\n\n- [ ] src/a.ts:L5-7 (Working tree) — one\n\n### src/b.ts\n\n- [ ] src/b.ts:L5-7 (Working tree) — two\n',
+    '## Pushed\n\n### src/a.ts\n\n- [ ] src/a.ts:L5-7 (Working tree) — one\n\n### src/b.ts\n\n- [ ] src/b.ts:L5-7 (Working tree) — two\n',
   );
   assert.equal(countNotes(secs), 2);
 });

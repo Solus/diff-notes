@@ -11,7 +11,7 @@
 - [x] 6 Pre-push hook (SPEC §6): opt-in setting, chains existing hooks.
 - [x] 7 Polish (SPEC §9): remembered grouping, renames and deletions, remaining open details.
 - [x] 8 Diff markers: commented lines get a soft background tint and a gutter note icon, plus scrollbar (overview ruler) marks; colours as contributed theme colours with defaults. STOP.
-- [ ] 9 Panel polish: tinted status icon per note (open/resolved/outdated/pushed), rich markdown tooltips (full text, author, date, range), file badges + colour for files with open notes, open-notes count badge on the sidebar icon (tooltips done early). STOP.
+- [ ] 9 Panel polish: tinted status icon per note (open/resolved/outdated/pushed) (done), rich markdown tooltips (full text, author, date, range) (done), file badges + colour for files with open notes, open-notes count badge on the sidebar icon . STOP.
 - [ ] 10 Note box: status label on notes (Resolved, Outdated), git user name as author with an avatar icon. STOP.
 
 ## Decisions
@@ -95,3 +95,4 @@
 - feat: jump between notes in a diff: opening a file from Commits now goes to its first open note (before, VS Code only scrolled when the diff held exactly one expanded note); Previous/Next Note buttons in the diff title bar, palette and Alt+P / Alt+N, wrapping with a status bar message, other boxes collapsed; pure ordering in src/core/noteNav.ts (3 tests). Not checked under F5: side switch uses `workbench.action.compareEditor.focusOtherSide`; Alt+N/P checked only against known defaults.
 - ui: Previous/Next Note use circled arrow icons (distinct from VS Code's change arrows) and now step through every note in the diff, open and resolved; opening from Commits still lands on the first open note. Not checked under F5.
 - UI A: note bodies (comments and replies, diff and Outdated view) render as markdown (no commands/HTML); edit box still shows the raw source and stores plain text (not checked under F5). Comments-list tooltip split into rule-separated sections (header, note, replies, code capped at 12 lines).
+- UI B: Comments list labels are plain text (markdown stripped); status icons on notes (comment / check green / cloud-upload / warning) and on groups; commit groups show the subject with the count (sha in the tooltip); "PUSHED" renamed "Pushed".
