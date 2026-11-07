@@ -42,6 +42,8 @@ export interface StoredComment {
   origin: string;
   /** Set when the snippet can no longer be found; range/origin/snippet then describe the last known place. */
   outdated?: boolean;
+  /** ISO time the commit was first seen as pushed (for auto-clear). */
+  pushedAt?: string;
 }
 
 /** Where a comment lives now (result of re-anchoring). */

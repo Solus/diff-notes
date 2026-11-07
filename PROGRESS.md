@@ -47,6 +47,8 @@
 - Commits view shows ` · N open notes` on working tree, commit and file rows (open, non-outdated only).
 - Markers: one decoration type (amber gutter stripe from `media/note-stripe-{light,dark}.svg`, stretched via `gutterIconSize: '100% 100%'`; overview ruler Right lane) applied by `src/markers.ts` to visible `diff-notes:` editors; lines from pure `markerSpans` (open, non-outdated, same file/origin/side). Colour `diffNotes.overviewRulerMarker` (amber). No line tint/border (clashed with diff green). Refreshed on every persist, re-anchor, and editor visibility/document open.
 - Notes going Outdated when lines change inside their range is accepted (user, 2026-11-07); no fuzzier anchoring planned.
+- Delete: trash on every comment in the note box; a reply goes at once, the first comment deletes the whole note (modal "Delete" confirm only if it has replies); "Delete Note" on list rows, same rule; works in the Outdated view. Pure store ops `remove`/`removeReply`.
+- Cleanup: Delete All Resolved/Pushed/Outdated in the Comments `...` menu (modal with count, info message at 0). `diffNotes.autoClearPushedDays` (0 = off) deletes notes whose optional `pushedAt` (stamped when first seen as pushed, cleared if back on an unpushed commit) is older than N days; runs after startup anchoring and each git change, skipped if the unpushed list can't be read (`tryUnpushed`). Logic in `src/core/cleanup.ts`.
 
 ## Log
 - S1 built: scaffold, Commits view (working tree + unpushed commits + files), native diff, notes create/edit/reply/resolve/reopen, JSON in `.git/diff-notes/`, reload on start.
@@ -80,3 +82,4 @@
 - fix: opening a note no longer selects text; cursor at note start, range scrolled into view, thread expanded (also Outdated view and Open Current Diff). Note thread/marker ranges still end at col 0 of the last line (comments.ts sync, openOutdatedThread); left unchanged.
 - fix: note range covers its last line; thread ranges now end at end-of-line (clamped col), and a new thread's range ending at col 0 of a later line is stored without that extra line (src/core/threadRange.ts, tested). Not checked in a running VS Code.
 - feat: Open File button (note title bar in diff and Outdated view, Comments list row) opens the real file at the note's line, re-anchored from its snippet; falls back to stored line with a status bar message; missing file shows an info message. Not checked in a running VS Code.
+- Delete + cleanup built: trash button, Delete Note, three bulk deletes, auto-clear setting; 5 tests. Not checked under F5 (modal wording, `...` menu placement, trash icon order next to Edit).

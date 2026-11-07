@@ -32,15 +32,20 @@ export class GitService {
 
   /** Unpushed commits, newest first: `@{upstream}..HEAD`, or commits on no remote if there is no upstream. */
   async unpushedCommits(): Promise<CommitInfo[]> {
+    return (await this.tryUnpushed()) ?? [];
+  }
+
+  /** Like `unpushedCommits`, but undefined when the list can't be determined (so callers can avoid destructive guesses). */
+  async tryUnpushed(): Promise<CommitInfo[] | undefined> {
     const head = this.repo.state.HEAD;
     if (!head?.commit) {
-      return [];
+      return undefined;
     }
     const range = head.upstream ? ['@{upstream}..HEAD'] : ['HEAD', '--not', '--remotes'];
     try {
       return parseLog(await this.run(['log', LOG_FORMAT, `-n${MAX_COMMITS}`, ...range]));
     } catch {
-      return [];
+      return undefined;
     }
   }
 

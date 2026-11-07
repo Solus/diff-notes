@@ -72,6 +72,23 @@ export class CommentStore {
     throw new Error(`No comment or reply with id ${id}`);
   }
 
+  /** Remove whole notes by id; returns how many were removed. */
+  remove(ids: readonly string[]): number {
+    const gone = new Set(ids);
+    const before = this.comments.length;
+    this.comments = this.comments.filter(c => !gone.has(c.id));
+    return before - this.comments.length;
+  }
+
+  /** Remove one reply by id. Returns the owning comment, or undefined if no such reply. */
+  removeReply(replyId: string): StoredComment | undefined {
+    const c = this.comments.find(x => x.replies.some(r => r.id === replyId));
+    if (c) {
+      c.replies = c.replies.filter(r => r.id !== replyId);
+    }
+    return c;
+  }
+
   setStatus(commentId: string, status: Status): StoredComment {
     const c = this.require(commentId);
     c.status = status;

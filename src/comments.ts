@@ -8,7 +8,7 @@ import { diffUri, parseDiffUri } from './diffUri';
 import { GitService } from './git';
 
 /** One rendered comment (the root note or a reply) inside a thread. */
-class NoteComment implements vscode.Comment {
+export class NoteComment implements vscode.Comment {
   mode = vscode.CommentMode.Preview;
   readonly contextValue = 'editable';
   readonly author: vscode.CommentAuthorInformation;
@@ -139,6 +139,20 @@ export class NotesController implements vscode.Disposable {
   /** Id of the stored comment behind a thread. */
   idOf(thread: vscode.CommentThread): string | undefined {
     return this.threadIds.get(thread);
+  }
+
+  /** Remove the live thread of a deleted note. */
+  remove(id: string): void {
+    this.drop(id);
+  }
+
+  /** Delete one reply and redraw its thread. */
+  async deleteReply(comment: NoteComment): Promise<void> {
+    const c = this.store.removeReply(comment.noteId);
+    if (c) {
+      this.sync(c);
+      await this.persist();
+    }
   }
 
   private drop(id: string): void {

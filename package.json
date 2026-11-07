@@ -36,6 +36,12 @@
           "type": "boolean",
           "default": false,
           "markdownDescription": "Install a git `pre-push` hook in this repository that lists open Diff Notes comments on the commits being pushed and asks `Push anyway? [y/N]`. An existing pre-push hook (e.g. Husky) is kept and runs first. Turning this off removes the hook and restores the previous one."
+        },
+        "diffNotes.autoClearPushedDays": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "Automatically delete notes on pushed commits this many days after the commit was first seen as pushed. `0` = off."
         }
       }
     },
@@ -62,14 +68,25 @@
       { "command": "diffNotes.saveComment", "title": "Save", "category": "Diff Notes" },
       { "command": "diffNotes.cancelEdit", "title": "Cancel", "category": "Diff Notes" },
       { "command": "diffNotes.resolve", "title": "Resolve", "category": "Diff Notes", "icon": "$(check)" },
-      { "command": "diffNotes.reopen", "title": "Reopen", "category": "Diff Notes", "icon": "$(issue-reopened)" }
+      { "command": "diffNotes.reopen", "title": "Reopen", "category": "Diff Notes", "icon": "$(issue-reopened)" },
+      { "command": "diffNotes.deleteComment", "title": "Delete", "category": "Diff Notes", "icon": "$(trash)" },
+      { "command": "diffNotes.deleteNote", "title": "Delete Note", "category": "Diff Notes" },
+      { "command": "diffNotes.deleteResolved", "title": "Delete All Resolved", "category": "Diff Notes" },
+      { "command": "diffNotes.deletePushed", "title": "Delete All Pushed", "category": "Diff Notes" },
+      { "command": "diffNotes.deleteOutdated", "title": "Delete All Outdated", "category": "Diff Notes" }
     ],
     "menus": {
       "view/title": [
         { "command": "diffNotes.groupBy", "when": "view == diffNotes.comments", "group": "navigation@1" },
         { "command": "diffNotes.showAll", "when": "view == diffNotes.comments && diffNotes.openOnly", "group": "navigation@2" },
         { "command": "diffNotes.openOnly", "when": "view == diffNotes.comments && !diffNotes.openOnly", "group": "navigation@2" },
-        { "command": "diffNotes.refresh", "when": "view == diffNotes.commits", "group": "navigation" }
+        { "command": "diffNotes.refresh", "when": "view == diffNotes.commits", "group": "navigation" },
+        { "command": "diffNotes.deleteResolved", "when": "view == diffNotes.comments", "group": "cleanup@1" },
+        { "command": "diffNotes.deletePushed", "when": "view == diffNotes.comments", "group": "cleanup@2" },
+        { "command": "diffNotes.deleteOutdated", "when": "view == diffNotes.comments", "group": "cleanup@3" }
+      ],
+      "view/item/context": [
+        { "command": "diffNotes.deleteNote", "when": "view == diffNotes.comments && viewItem =~ /^(open|resolved)$/", "group": "9_delete" }
       ],
       "comments/commentThread/context": [
         { "command": "diffNotes.createComment", "when": "commentController == diffNotes && commentThreadIsEmpty", "group": "inline@1" },
@@ -82,7 +99,8 @@
         { "command": "diffNotes.reopen", "when": "commentController == diffNotes && commentThread =~ /resolved$/", "group": "navigation" }
       ],
       "comments/comment/title": [
-        { "command": "diffNotes.editComment", "when": "commentController == diffNotes && comment == editable", "group": "inline@1" }
+        { "command": "diffNotes.editComment", "when": "commentController == diffNotes && comment == editable", "group": "inline@1" },
+        { "command": "diffNotes.deleteComment", "when": "commentController == diffNotes && comment == editable", "group": "inline@2" }
       ],
       "comments/comment/context": [
         { "command": "diffNotes.saveComment", "when": "commentController == diffNotes", "group": "inline@1" },
@@ -100,7 +118,9 @@
         { "command": "diffNotes.saveComment", "when": "false" },
         { "command": "diffNotes.cancelEdit", "when": "false" },
         { "command": "diffNotes.resolve", "when": "false" },
-        { "command": "diffNotes.reopen", "when": "false" }
+        { "command": "diffNotes.reopen", "when": "false" },
+        { "command": "diffNotes.deleteComment", "when": "false" },
+        { "command": "diffNotes.deleteNote", "when": "false" }
       ]
     }
   },

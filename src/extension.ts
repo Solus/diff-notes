@@ -1,11 +1,12 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { Anchoring } from './anchoring';
-import { NotesController, OutdatedContentProvider } from './comments';
+import { NoteComment, NotesController, OutdatedContentProvider } from './comments';
 import { CommentsProvider, GROUP_LABELS } from './commentsView';
 import { CommitsProvider } from './commitsView';
 import { DiffContentProvider } from './contentProvider';
 import { OUTDATED_SCHEME, SCHEME } from './core/diffRef';
+import { deletePrompt, expiredPushed, outdatedNotes, pushedNotes, resolvedNotes, stampPushed } from './core/cleanup';
 import { countOpenUnpushed, GroupMode } from './core/commentList';
 import { ChangedFile } from './core/gitParse';
 import { CommentStore } from './core/store';
@@ -87,6 +88,7 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     }
   };
 
+  let sweepPushedLater: () => Promise<void> = async () => undefined;
   const applyHookSetting = async (): Promise<void> => {
     const on = vscode.workspace.getConfiguration('diffNotes').get<boolean>('prePushHook', false);
     try {
@@ -108,6 +110,9 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
       if (e.affectsConfiguration('diffNotes.prePushHook')) {
         void applyHookSetting();
       }
+      if (e.affectsConfiguration('diffNotes.autoClearPushedDays')) {
+        void sweepPushedLater();
+      }
     }),
   );
 
@@ -126,7 +131,31 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     content.refreshWorkingTree();
     await persist();
   });
-  void anchoring.run();
+  const deleteNotes = async (ids: string[]): Promise<void> => {
+    if (store.remove(ids) > 0) {
+      ids.forEach(id => notes.remove(id));
+      await persist();
+    }
+  };
+  /** Stamp newly pushed notes and auto-delete old pushed ones. Skipped when the unpushed list is unknown. */
+  const sweepPushed = async (): Promise<void> => {
+    const list = await git.tryUnpushed();
+    if (!list) {
+      return;
+    }
+    const shas = list.map(c => c.sha);
+    const stamped = stampPushed(store.all(), shas, new Date().toISOString());
+    const days = vscode.workspace.getConfiguration('diffNotes').get<number>('autoClearPushedDays', 0);
+    const expired = expiredPushed(store.all(), shas, days, Date.now()).map(c => c.id);
+    if (expired.length) {
+      await deleteNotes(expired);
+    } else if (stamped) {
+      await persist();
+    }
+  };
+  sweepPushedLater = sweepPushed;
+  const runAnchoring = (): Promise<void> => anchoring.run().then(sweepPushed);
+  void runAnchoring();
   commits.setGit(git);
   commentsView.setGit(git);
   const setCtx = (): unknown => vscode.commands.executeCommand('setContext', 'diffNotes.openOnly', commentsView.openOnly);
@@ -142,7 +171,7 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
       commits.refresh();
       refreshComments();
       content.refreshWorkingTree();
-      void anchoring.run();
+      void runAnchoring();
     }, 300);
   };
   ctx.subscriptions.push(git.onDidChange(schedule), vscode.workspace.onDidSaveTextDocument(schedule), { dispose: () => clearTimeout(timer) });
@@ -238,6 +267,38 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
   reg('diffNotes.editComment', c => notes.startEdit(c));
   reg('diffNotes.saveComment', c => notes.saveEdit(c));
   reg('diffNotes.cancelEdit', c => notes.cancelEdit(c));
+  const confirmDelete = async (message: string): Promise<boolean> => (await vscode.window.showWarningMessage(message, { modal: true }, 'Delete')) === 'Delete';
+  const deleteNoteById = async (id: string): Promise<void> => {
+    const c = store.get(id);
+    if (!c) {
+      return;
+    }
+    if (c.replies.length > 0 && !(await confirmDelete(`Delete this note and its ${c.replies.length} repl${c.replies.length === 1 ? 'y' : 'ies'}?`))) {
+      return;
+    }
+    await deleteNotes([id]);
+  };
+  reg('diffNotes.deleteComment', async (comment: NoteComment) => {
+    if (comment.noteId === comment.threadId) {
+      await deleteNoteById(comment.threadId);
+    } else {
+      await notes.deleteReply(comment);
+    }
+  });
+  reg('diffNotes.deleteNote', (node: { comment?: StoredComment }) => (node?.comment ? deleteNoteById(node.comment.id) : undefined));
+  const bulkDelete = async (kind: string, pick: (unpushed: string[]) => StoredComment[]): Promise<void> => {
+    const hit = pick((await git.unpushedCommits()).map(c => c.sha));
+    if (hit.length === 0) {
+      void vscode.window.showInformationMessage(`Diff Notes: no ${kind} notes to delete.`);
+      return;
+    }
+    if (await confirmDelete(deletePrompt(hit.length, kind))) {
+      await deleteNotes(hit.map(c => c.id));
+    }
+  };
+  reg('diffNotes.deleteResolved', () => bulkDelete('resolved', () => resolvedNotes(store.all())));
+  reg('diffNotes.deletePushed', () => bulkDelete('pushed', u => pushedNotes(store.all(), u)));
+  reg('diffNotes.deleteOutdated', () => bulkDelete('outdated', () => outdatedNotes(store.all())));
   reg('diffNotes.resolve', (t: vscode.CommentThread) => notes.setStatus(t, 'resolved'));
   reg('diffNotes.reopen', (t: vscode.CommentThread) => notes.setStatus(t, 'open'));
 }
