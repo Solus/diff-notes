@@ -85,3 +85,4 @@
 - feat: Open File button (note title bar in diff and Outdated view, Comments list row) opens the real file at the note's line, re-anchored from its snippet; falls back to stored line with a status bar message; missing file shows an info message. Not checked in a running VS Code.
 - Delete + cleanup built: trash button, Delete Note, three bulk deletes, auto-clear setting; 5 tests. Not checked under F5 (modal wording, `...` menu placement, trash icon order next to Edit).
 - Copy built: Copy Notes title button, Copy on group and note rows, "Copied N notes" status message; 5 tests. Not checked under F5 (clipboard paste, button order).
+- ui: Group By is now a title-bar dropdown (submenu with Commit/File/None, check mark on current via `diffNotes.groupMode` context key); old quick pick removed. Not checked under F5.

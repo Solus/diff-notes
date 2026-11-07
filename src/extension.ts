@@ -161,6 +161,7 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
   commentsView.setGit(git);
   const setCtx = (): unknown => vscode.commands.executeCommand('setContext', 'diffNotes.openOnly', commentsView.openOnly);
   void setCtx();
+  void vscode.commands.executeCommand('setContext', 'diffNotes.groupMode', commentsView.mode);
   bar.show();
   void updateBar();
   ctx.subscriptions.push(commentsView, bar, vscode.window.createTreeView('diffNotes.comments', { treeDataProvider: commentsView }));
@@ -194,19 +195,15 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     void setCtx();
     commentsView.refresh();
   });
-  reg('diffNotes.groupBy', async () => {
-    const items = (Object.keys(GROUP_LABELS) as GroupMode[]).map(m => ({
-      label: GROUP_LABELS[m],
-      description: m === commentsView.mode ? 'current' : undefined,
-      mode: m,
-    }));
-    const pick = await vscode.window.showQuickPick(items, { title: 'Group comments by' });
-    if (pick) {
-      commentsView.mode = pick.mode;
-      void ctx.workspaceState.update(GROUP_KEY, pick.mode);
-      commentsView.refresh();
-    }
-  });
+  const setMode = (m: GroupMode): void => {
+    commentsView.mode = m;
+    void vscode.commands.executeCommand('setContext', 'diffNotes.groupMode', m);
+    void ctx.workspaceState.update(GROUP_KEY, m);
+    commentsView.refresh();
+  };
+  reg('diffNotes.groupByCommit', () => setMode('commit'));
+  reg('diffNotes.groupByFile', () => setMode('file'));
+  reg('diffNotes.groupByNone', () => setMode('none'));
   const openDiffFor = async (c: StoredComment): Promise<void> => {
     const files = c.origin === WORKING_TREE ? git.workingTreeFiles() : await git.commitFiles(c.origin).catch(() => []);
     const f = files.find(x => (c.side === 'new' ? x.path : (x.oldPath ?? x.path)) === c.file);

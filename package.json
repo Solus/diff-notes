@@ -53,7 +53,9 @@
       }
     ],
     "commands": [
-      { "command": "diffNotes.groupBy", "title": "Group By...", "category": "Diff Notes", "icon": "$(list-tree)" },
+      { "command": "diffNotes.groupByCommit", "title": "Group by Commit", "shortTitle": "Commit", "category": "Diff Notes", "toggled": "diffNotes.groupMode == commit" },
+      { "command": "diffNotes.groupByFile", "title": "Group by File", "shortTitle": "File", "category": "Diff Notes", "toggled": "diffNotes.groupMode == file" },
+      { "command": "diffNotes.groupByNone", "title": "Group by None", "shortTitle": "None", "category": "Diff Notes", "toggled": "diffNotes.groupMode == none" },
       { "command": "diffNotes.openOnly", "title": "Show Open Only", "category": "Diff Notes", "icon": "$(filter)" },
       { "command": "diffNotes.showAll", "title": "Show Resolved Too", "category": "Diff Notes", "icon": "$(filter-filled)" },
       { "command": "diffNotes.openComment", "title": "Open Comment", "category": "Diff Notes" },
@@ -77,9 +79,17 @@
       { "command": "diffNotes.deletePushed", "title": "Delete All Pushed", "category": "Diff Notes" },
       { "command": "diffNotes.deleteOutdated", "title": "Delete All Outdated", "category": "Diff Notes" }
     ],
+    "submenus": [
+      { "id": "diffNotes.groupBySubmenu", "label": "Group By", "icon": "$(list-tree)" }
+    ],
     "menus": {
+      "diffNotes.groupBySubmenu": [
+        { "command": "diffNotes.groupByCommit", "group": "1_mode@1" },
+        { "command": "diffNotes.groupByFile", "group": "1_mode@2" },
+        { "command": "diffNotes.groupByNone", "group": "1_mode@3" }
+      ],
       "view/title": [
-        { "command": "diffNotes.groupBy", "when": "view == diffNotes.comments", "group": "navigation@1" },
+        { "submenu": "diffNotes.groupBySubmenu", "when": "view == diffNotes.comments", "group": "navigation@1" },
         { "command": "diffNotes.showAll", "when": "view == diffNotes.comments && diffNotes.openOnly", "group": "navigation@2" },
         { "command": "diffNotes.openOnly", "when": "view == diffNotes.comments && !diffNotes.openOnly", "group": "navigation@2" },
         { "command": "diffNotes.refresh", "when": "view == diffNotes.commits", "group": "navigation" },
