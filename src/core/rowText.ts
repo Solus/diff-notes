@@ -44,22 +44,35 @@ export function relativeDate(iso: string, now: number): string {
   return 'just now';
 }
 
-/** Markdown for a note's hover tooltip. `commit` is `abc1234 subject` or `Working tree`. */
+/** Max snippet lines shown in a tooltip. */
+const TIP_CODE_LINES = 12;
+
+/**
+ * Markdown for a note's hover tooltip, in sections split by horizontal rules:
+ * header (path, range, commit, status), note, replies (if any), code snippet.
+ * `commit` is `abc1234 subject` or `Working tree`.
+ */
 export function tooltipMarkdown(c: StoredComment, commit: string, now: number): string {
   const status = c.outdated ? 'Outdated' : c.status === 'resolved' ? 'Resolved' : 'Open';
-  const when = relativeDate(c.createdAt, now);
-  const out = [
-    `**${c.file} · ${rangeLabel(c)}**`,
-    `${commit} · ${status}`,
-    `${c.author}${when ? ` · ${when}` : ''}`,
-    c.body.trimEnd(),
-    ...c.replies.map(r => `**${r.author}**: ${r.body.trimEnd()}`),
+  const when = (iso: string): string => {
+    const w = relativeDate(iso, now);
+    return w ? ` · ${w}` : '';
+  };
+  const where = commit === 'Working tree' ? 'Working tree' : `commit \`${commit.replace(/`/g, "'")}\``;
+  const sections = [
+    `**${c.file} · ${rangeLabel(c)}**\n\n*${where} · ${status}*`,
+    `**${c.author}**${when(c.createdAt)}\n\n${c.body.trimEnd()}`,
   ];
+  if (c.replies.length > 0) {
+    sections.push(['**Replies**', ...c.replies.map(r => `**${r.author}**${when(r.createdAt)}\n\n${r.body.trimEnd()}`)].join('\n\n'));
+  }
   if (c.snippet.lines.length > 0) {
-    const code = c.snippet.lines.join('\n');
+    const shown = c.snippet.lines.slice(0, TIP_CODE_LINES);
+    const more = c.snippet.lines.length - shown.length;
+    const code = shown.join('\n');
     const longest = Math.max(0, ...(code.match(/`+/g) ?? []).map(m => m.length));
     const fence = '`'.repeat(Math.max(3, longest + 1));
-    out.push(`${fence}${languageOf(c.file)}\n${code}\n${fence}`);
+    sections.push(`${fence}${languageOf(c.file)}\n${code}\n${fence}` + (more > 0 ? `\n\n… ${more} more line${more === 1 ? '' : 's'}` : ''));
   }
-  return out.join('\n\n');
+  return sections.join('\n\n---\n\n');
 }

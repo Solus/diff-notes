@@ -31,6 +31,15 @@ export class NoteComment implements vscode.Comment {
   }
 }
 
+/** Display body: markdown without command links or HTML. Editing shows `.value`, the raw source. */
+function markdownBody(text: string): vscode.MarkdownString {
+  const md = new vscode.MarkdownString(text);
+  md.isTrusted = false;
+  md.supportHtml = false;
+  md.supportThemeIcons = false;
+  return md;
+}
+
 function bodyText(body: string | vscode.MarkdownString): string {
   return typeof body === 'string' ? body : body.value;
 }
@@ -295,10 +304,10 @@ export class NotesController implements vscode.Disposable {
 
   private render(thread: vscode.CommentThread, c: StoredComment): void {
     thread.comments = [
-      new NoteComment(c.id, c.id, c.body, c.author, c.createdAt, c.editedAt),
-      ...c.replies.map(r => new NoteComment(r.id, c.id, r.body, r.author, r.createdAt, r.editedAt)),
+      new NoteComment(c.id, c.id, markdownBody(c.body), c.author, c.createdAt, c.editedAt),
+      ...c.replies.map(r => new NoteComment(r.id, c.id, markdownBody(r.body), r.author, r.createdAt, r.editedAt)),
     ];
-    thread.label = c.outdated ? `Outdated · ${rangeLabel(c)}` : rangeLabel(c);
+    thread.label = c.outdated ? `Outdated Â· ${rangeLabel(c)}` : rangeLabel(c);
     thread.contextValue = c.outdated ? `outdated-${c.status}` : c.status;
     thread.state = c.status === 'resolved' ? vscode.CommentThreadState.Resolved : vscode.CommentThreadState.Unresolved;
     thread.canReply = true;
