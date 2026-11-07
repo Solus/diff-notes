@@ -117,7 +117,8 @@ export class CommentsProvider implements vscode.TreeDataProvider<Node> {
     const item = new vscode.TreeItem(rowLabel(c.body),vscode.TreeItemCollapsibleState.None);
     item.description = rowDescription(node.group, c, this.originLabel(c.origin));
     const tip = new vscode.MarkdownString(tooltipMarkdown(c, c.origin === WORKING_TREE ? 'Working tree' : (this.subjects.get(c.origin) ?? shortOrigin(c.origin)), Date.now()));
-    tip.supportThemeIcons = false;
+    tip.supportThemeIcons = true;
+    tip.supportHtml = true;
     item.tooltip = tip;
     item.iconPath = this.noteIcon(c, node.group);
     item.contextValue = c.status;

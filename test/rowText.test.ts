@@ -29,19 +29,24 @@ test('tooltip markdown', () => {
     file: 'src/a.ts', side: 'new', startLine: 5, endLine: 7, snippet: { before: [], lines: ['let a;'], after: [] }, origin: 'abc',
   };
   const now = Date.parse('2026-01-10T00:00:00Z');
+  const M = (t: string): string => `<span style="color:var(--vscode-descriptionForeground);">${t}</span>`;
   assert.equal(
     tooltipMarkdown(n, 'abc1234 subj', now),
     [
-      '**src/a.ts · L5–7**\n\n*commit `abc1234 subj` · Open*',
-      '**me** · 1 day ago\n\nfirst\nmore',
-      '**Replies**\n\n**bob**\n\nok',
+      `$(file) **src/a.ts** · L5–7\n\n$(git-commit) abc1234 · subj · ${M('Open')}`,
+      `$(comment) **me** · ${M('1 day ago')}\n\nfirst\nmore`,
+      '> **bob** — ok',
       '```typescript\nlet a;\n```',
     ].join('\n\n---\n\n'),
   );
-  assert.ok(tooltipMarkdown(n, 'Working tree', now).startsWith('**src/a.ts · L5–7**\n\n*Working tree · Open*'));
-  assert.ok(!tooltipMarkdown({ ...n, replies: [] }, 'x', now).includes('Replies'));
-  const long = tooltipMarkdown({ ...n, snippet: { before: [], after: [], lines: Array.from({ length: 15 }, (_, i) => 'l' + i) } }, 'x', now);
-  assert.ok(long.includes('l11\n```\n\n… 3 more lines') && !long.includes('l12'));
+  assert.ok(tooltipMarkdown(n, 'Working tree', now).includes(`$(edit) Working tree · ${M('Open')}`));
+  const two = tooltipMarkdown({ ...n, replies: [{ id: 'r', author: 'bob', createdAt: '2026-01-09T00:00:00Z', body: 'a\nb' }, { id: 's', author: 'al', createdAt: 't', body: 'c' }] }, 'x', now);
+  assert.ok(two.includes(`> **bob** · ${M('1 day ago')} — a\n> b\n\n> **al** — c`));
+  assert.ok(!two.includes('Replies'));
+  const long = tooltipMarkdown({ ...n, snippet: { before: [], after: [], lines: Array.from({ length: 8 }, (_, i) => 'l' + i) } }, 'x', now);
+  assert.ok(long.includes('l4\n```\n\n' + M('… 3 more lines')) && !long.includes('l5'));
+  const evil = tooltipMarkdown({ ...n, author: '$(x)<b>', body: '<img src=x> $(bug)\n```\n<b> $(k)\n```' }, 'abc $(sub)', now);
+  assert.ok(evil.includes('\$(x)\<b\>') && evil.includes('\<img src=x> \$(bug)') && evil.includes('\n<b> $(k)\n') && evil.includes('abc · \$(sub)'));
 });
 
 test('row label strips markdown', () => {

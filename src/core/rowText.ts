@@ -45,26 +45,67 @@ export function relativeDate(iso: string, now: number): string {
 }
 
 /** Max snippet lines shown in a tooltip. */
-const TIP_CODE_LINES = 12;
+const TIP_CODE_LINES = 5;
+/** Max commit subject length in the tooltip header. */
+const TIP_SUBJECT_MAX = 60;
+
+/** Escape text for inline markdown with HTML and theme icons enabled (`$(name)` would draw an icon). */
+export function escapeInline(t: string): string {
+  return t.replace(/[\\`*_<>&|~[\]]/g, m => '\\' + m).replace(/\$\(/g, '\\$(');
+}
+
+/** Escape a markdown body for the same mode; fenced code blocks are left as they are. */
+export function escapeBody(body: string): string {
+  let fence = '';
+  return body.split(/\r?\n/).map(line => {
+    const m = /^\s*(`{3,}|~{3,})/.exec(line);
+    if (m) {
+      if (!fence) {
+        fence = m[1];
+      } else if (m[1][0] === fence[0] && m[1].length >= fence.length) {
+        fence = '';
+      }
+      return line;
+    }
+    return fence ? line : line.replace(/</g, '\\<').replace(/\$\(/g, '\\$(');
+  }).join('\n');
+}
+
+/** Muted text (description colour). Needs `supportHtml`. */
+const muted = (t: string): string => `<span style="color:var(--vscode-descriptionForeground);">${t}</span>`;
 
 /**
- * Markdown for a note's hover tooltip, in sections split by horizontal rules:
- * header (path, range, commit, status), note, replies (if any), code snippet.
- * `commit` is `abc1234 subject` or `Working tree`.
+ * Markdown for a note's hover tooltip (needs supportThemeIcons + supportHtml), in sections split by rules:
+ * header (path, range, commit, status), note, replies as one blockquote each (if any), code snippet.
+ * `commit` is `abc1234 subject` or `Working tree`. All inserted text is escaped.
  */
 export function tooltipMarkdown(c: StoredComment, commit: string, now: number): string {
   const status = c.outdated ? 'Outdated' : c.status === 'resolved' ? 'Resolved' : 'Open';
   const when = (iso: string): string => {
     const w = relativeDate(iso, now);
-    return w ? ` · ${w}` : '';
+    return w ? ` · ${muted(w)}` : '';
   };
-  const where = commit === 'Working tree' ? 'Working tree' : `commit \`${commit.replace(/`/g, "'")}\``;
+  let where = '$(edit) Working tree';
+  if (commit !== 'Working tree') {
+    const sp = commit.indexOf(' ');
+    const sha = sp < 0 ? commit : commit.slice(0, sp);
+    let subject = sp < 0 ? '' : commit.slice(sp + 1);
+    if (subject.length > TIP_SUBJECT_MAX) {
+      subject = subject.slice(0, TIP_SUBJECT_MAX - 1).trimEnd() + '…';
+    }
+    where = `$(git-commit) ${escapeInline(sha)}` + (subject ? ` · ${escapeInline(subject)}` : '');
+  }
   const sections = [
-    `**${c.file} · ${rangeLabel(c)}**\n\n*${where} · ${status}*`,
-    `**${c.author}**${when(c.createdAt)}\n\n${c.body.trimEnd()}`,
+    `$(file) **${escapeInline(c.file)}** · ${rangeLabel(c)}\n\n${where} · ${muted(status)}`,
+    `$(comment) **${escapeInline(c.author)}**${when(c.createdAt)}\n\n${escapeBody(c.body.trimEnd())}`,
   ];
   if (c.replies.length > 0) {
-    sections.push(['**Replies**', ...c.replies.map(r => `**${r.author}**${when(r.createdAt)}\n\n${r.body.trimEnd()}`)].join('\n\n'));
+    const quotes = c.replies.map(r => {
+      const lines = escapeBody(r.body.trimEnd()).split('\n');
+      lines[0] = `**${escapeInline(r.author)}**${when(r.createdAt)} — ${lines[0]}`;
+      return lines.map(l => `> ${l}`.trimEnd()).join('\n');
+    });
+    sections.push(quotes.join('\n\n'));
   }
   if (c.snippet.lines.length > 0) {
     const shown = c.snippet.lines.slice(0, TIP_CODE_LINES);
@@ -72,7 +113,7 @@ export function tooltipMarkdown(c: StoredComment, commit: string, now: number): 
     const code = shown.join('\n');
     const longest = Math.max(0, ...(code.match(/`+/g) ?? []).map(m => m.length));
     const fence = '`'.repeat(Math.max(3, longest + 1));
-    sections.push(`${fence}${languageOf(c.file)}\n${code}\n${fence}` + (more > 0 ? `\n\n… ${more} more line${more === 1 ? '' : 's'}` : ''));
+    sections.push(`${fence}${languageOf(c.file)}\n${code}\n${fence}` + (more > 0 ? '\n\n' + muted(`… ${more} more line${more === 1 ? '' : 's'}`) : ''));
   }
   return sections.join('\n\n---\n\n');
 }
