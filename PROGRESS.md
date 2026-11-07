@@ -46,6 +46,7 @@
 - Renames: a comment on a renamed file follows it (new side only; working tree and landing/rewritten commits) and its stored `file` is updated. Deleted files: new-side comments go outdated; old-side comments on a commit stay.
 - Commits view shows ` · N open notes` on working tree, commit and file rows (open, non-outdated only).
 - Markers: one decoration type (amber gutter stripe from `media/note-stripe-{light,dark}.svg`, stretched via `gutterIconSize: '100% 100%'`; overview ruler Right lane) applied by `src/markers.ts` to visible `diff-notes:` editors; lines from pure `markerSpans` (open, non-outdated, same file/origin/side). Colour `diffNotes.overviewRulerMarker` (amber). No line tint/border (clashed with diff green). Refreshed on every persist, re-anchor, and editor visibility/document open.
+- Notes going Outdated when lines change inside their range is accepted (user, 2026-11-07); no fuzzier anchoring planned.
 
 ## Log
 - S1 built: scaffold, Commits view (working tree + unpushed commits + files), native diff, notes create/edit/reply/resolve/reopen, JSON in `.git/diff-notes/`, reload on start.
@@ -78,3 +79,4 @@
 - S8 follow-up: tint and left border replaced by a full-line-height amber gutter stripe (light/dark SVGs); VS Code's own comment glyph may cover the stripe on the anchor line (accepted); not yet eyeballed under F5.
 - fix: opening a note no longer selects text; cursor at note start, range scrolled into view, thread expanded (also Outdated view and Open Current Diff). Note thread/marker ranges still end at col 0 of the last line (comments.ts sync, openOutdatedThread); left unchanged.
 - fix: note range covers its last line; thread ranges now end at end-of-line (clamped col), and a new thread's range ending at col 0 of a later line is stored without that extra line (src/core/threadRange.ts, tested). Not checked in a running VS Code.
+- feat: Open File button (note title bar in diff and Outdated view, Comments list row) opens the real file at the note's line, re-anchored from its snippet; falls back to stored line with a status bar message; missing file shows an info message. Not checked in a running VS Code.

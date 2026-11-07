@@ -10,6 +10,7 @@ import { countOpenUnpushed, GroupMode } from './core/commentList';
 import { ChangedFile } from './core/gitParse';
 import { CommentStore } from './core/store';
 import { StoredComment, WORKING_TREE } from './core/model';
+import { findOpenLine } from './core/openLine';
 import { diffUri } from './diffUri';
 import { GitService } from './git';
 import { Markers } from './markers';
@@ -209,6 +210,26 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     const c = store.get(notes.idOf(t) ?? '');
     if (c) {
       await openDiffFor(c);
+    }
+  });
+  reg('diffNotes.openFile', async (arg: vscode.CommentThread | { comment?: StoredComment } | string) => {
+    const c = typeof arg === 'string' ? store.get(arg) : 'comment' in arg && arg.comment ? arg.comment : store.get(notes.idOf(arg as vscode.CommentThread) ?? '');
+    if (!c) {
+      return;
+    }
+    const uri = vscode.Uri.file(path.join(git.root, ...c.file.split('/')));
+    let text: string;
+    try {
+      text = new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
+    } catch {
+      void vscode.window.showInformationMessage(`Diff Notes: ${c.file} no longer exists in the working tree.`);
+      return;
+    }
+    const { line, found } = findOpenLine(c.snippet, c.startLine, text);
+    const pos = new vscode.Position(line, 0);
+    await vscode.window.showTextDocument(uri, { selection: new vscode.Range(pos, pos), preview: false });
+    if (!found) {
+      vscode.window.setStatusBarMessage("Diff Notes: Note's code not found in current file — opened at stored line", 5000);
     }
   });
   reg('diffNotes.createComment', (r: vscode.CommentReply) => notes.create(r));
