@@ -1,0 +1,30 @@
+{
+  "name": "shopkeeper",
+  "version": "0.1.0",
+  "currency": "EUR",
+  "inventory": {
+    "lowStockThreshold": 2,
+    "reservationTtlMinutes": 30,
+    "catalogueUrl": "https://example.com/api/catalogue"
+  },
+  "payments": {
+    "provider": "fakepay",
+    "retries": 3,
+    "baseDelayMs": 200,
+    "timeoutSeconds": 10
+  },
+  "reports": {
+    "defaultTop": 5,
+    "formats": ["text", "markdown"],
+    "outputDir": "reports"
+  },
+  "logging": {
+    "level": "info",
+    "pretty": true
+  },
+  "features": {
+    "coupons": false,
+    "giftWrap": false,
+    "waitlist": false
+  }
+}
