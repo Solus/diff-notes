@@ -76,3 +76,4 @@
 - S8 decided: resolved and outdated notes get no marker; refresh piggybacks on persist and re-anchor.
 - S8 open: not checked in a running VS Code (F5): gutter icon (glyph margin) vs VS Code's "+" (line-decoration strip) are different columns so should coexist, unverified; a pending unsaved draft box gets no marker until saved.
 - S8 follow-up: tint and left border replaced by a full-line-height amber gutter stripe (light/dark SVGs); VS Code's own comment glyph may cover the stripe on the anchor line (accepted); not yet eyeballed under F5.
+- fix: opening a note no longer selects text; cursor at note start, range scrolled into view, thread expanded (also Outdated view and Open Current Diff). Note thread/marker ranges still end at col 0 of the last line (comments.ts sync, openOutdatedThread); left unchanged.

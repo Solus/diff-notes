@@ -127,6 +127,14 @@ export class NotesController implements vscode.Disposable {
     return { uri, range };
   }
 
+  /** Open the thread box of comment `id` (if it has a live thread). */
+  expand(id: string): void {
+    const t = this.threads.get(id);
+    if (t) {
+      t.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
+    }
+  }
+
   /** Id of the stored comment behind a thread. */
   idOf(thread: vscode.CommentThread): string | undefined {
     return this.threadIds.get(thread);

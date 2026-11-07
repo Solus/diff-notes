@@ -176,7 +176,7 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
       commentsView.refresh();
     }
   });
-  const openDiffFor = async (c: StoredComment, select: boolean): Promise<void> => {
+  const openDiffFor = async (c: StoredComment): Promise<void> => {
     const files = c.origin === WORKING_TREE ? git.workingTreeFiles() : await git.commitFiles(c.origin).catch(() => []);
     const f = files.find(x => (c.side === 'new' ? x.path : (x.oldPath ?? x.path)) === c.file);
     const newPath = c.side === 'new' ? c.file : (f?.path ?? c.file);
@@ -187,8 +187,9 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
       diffUri({ file: oldPath, origin: c.origin, side: 'old' }),
       diffUri({ file: newPath, origin: c.origin, side: 'new' }),
       `${path.posix.basename(newPath)} (${label})`,
-      select ? { selection: new vscode.Range(c.startLine - 1, 0, c.endLine - 1, 0) } : undefined,
+      { selection: new vscode.Range(c.startLine - 1, 0, c.startLine - 1, 0) },
     );
+    notes.expand(c.id);
   };
   reg('diffNotes.openComment', async (id: string) => {
     const c = store.get(id);
@@ -197,15 +198,17 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
     }
     if (c.outdated) {
       const { uri, range } = notes.openOutdatedThread(c);
-      await vscode.window.showTextDocument(uri, { selection: range, preview: true });
+      const start = range.start;
+      await vscode.window.showTextDocument(uri, { selection: new vscode.Range(start, start), preview: true });
+      notes.expand(c.id);
       return;
     }
-    await openDiffFor(c, true);
+    await openDiffFor(c);
   });
   reg('diffNotes.openCurrentDiff', async (t: vscode.CommentThread) => {
     const c = store.get(notes.idOf(t) ?? '');
     if (c) {
-      await openDiffFor(c, false);
+      await openDiffFor(c);
     }
   });
   reg('diffNotes.createComment', (r: vscode.CommentReply) => notes.create(r));
