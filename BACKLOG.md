@@ -17,7 +17,7 @@
 - [x] Remove the pre-push hook feature (user decision 2026-11-08): setting, hook code, README feature/setting/limit lines, BACKLOG known limits.
 - [x] `Solus/diff-notes` made public 2026-11-08.
 - [x] Publisher `bero-labs` + `VSCE_PAT` secret set up.
-- [ ] Install `diff-notes-0.1.0.vsix` in a clean VS Code and smoke-test.
+- [ ] Confirm Marketplace listing is live (was 404 right after publish), then smoke-test the installed extension.
 - [x] Published 0.1.0 via GitHub Release `v0.1.0` (workflow run succeeded 2026-11-08).
 
 ## Known limits (accepted unless the user says otherwise)
@@ -35,6 +35,6 @@
 - Alt+N / Alt+P only checked against known default keybindings.
 
 ## Ideas / deferred
-- Slice 9 rest: file badges + colour, sidebar count badge (next up).
+- Slice 9 rest: file badges + colour, sidebar count badge (next up, for 0.2.0).
 - Slice 10: note box status label, author avatar (parked).
 - Upstream VS Code report for the duplicate `hideComment` registration.

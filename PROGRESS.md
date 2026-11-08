@@ -4,15 +4,17 @@
 Follow-ups, known limits and the F5 checklist: `BACKLOG.md`.
 
 ## Current state
-- Slices 1–8 done, plus extras: delete/cleanup/auto-clear, copy as markdown, Group-by dropdown, Open File (follows renames), Previous/Next Note, markdown note bodies, note-first tooltips, realistic sandbox.
-- `npm run build` and `npm test` pass; tree clean; pushed to private GitHub repo `Solus/diff-notes`, branch `main`.
-- Confirmed under F5 by the user: slices 1–4 and 8, Cancel, gutter stripe, tooltip layout. Everything else is built but **not yet checked under F5** (list in `BACKLOG.md`).
+- Slices 1–8 done, plus extras (delete/auto-clear, copy as markdown, Group-by, Open File, Previous/Next Note, markdown bodies, note-first tooltips). Pre-push hook was removed before release.
+- **0.1.0 is published**: GitHub Release `v0.1.0` triggered `.github/workflows/publish.yml`, which succeeded. The Marketplace listing (`bero-labs.diff-notes`) was still 404 right after (automated scan pending, usually minutes to an hour). Repo `Solus/diff-notes` is public.
+- F5 checklist: user confirmed everything ("tested, looks ok"). `npm run build` and `npm test` pass; tree clean and pushed.
 - Slice 9 half done (status icons, tooltips). Slice 10 parked (user: functionality first, polish later).
 
 ## Next steps
-1. **User F5 pass** over the unchecked list in `BACKLOG.md`; fix what fails (fix-up subagents use systematic-debugging).
-2. **Slice 9 rest — brief for an implementer:** Goal: in the Commits view, file rows with open notes get a badge and colour (FileDecorationProvider on the `diff-notes:` file URIs used by Commits rows), and the Diff Notes sidebar icon shows the open-notes count (TreeView `badge` on the Comments view, same count as the status bar). Area: `src/` view code; count logic already in `src/core/commentList.ts`. Verify: `npm run build && npm test`; add a pure test if new logic is added. Done: both visible under F5 in `sandbox/`, slice 9 ticked, PROGRESS updated per slice protocol.
+1. **Confirm the listing went live** at https://marketplace.visualstudio.com/items?itemName=bero-labs.diff-notes (check the README screenshots render), then install it from the Marketplace in a clean VS Code and smoke-test. If still missing after ~1 hour, investigate in the Marketplace publisher page and the Actions run log.
+2. **Slice 9 rest — brief for an implementer:** Goal: in the Commits view, file rows with open notes get a badge and colour (FileDecorationProvider on the `diff-notes:` file URIs used by Commits rows), and the Diff Notes sidebar icon shows the open-notes count (TreeView `badge` on the Comments view, same count as the status bar). Area: `src/` view code; count logic already in `src/core/commentList.ts`. Verify: `npm run build && npm test`; add a pure test if new logic is added. Done: both visible under F5 in `sandbox/`, slice 9 ticked, PROGRESS updated per slice protocol. Ship as 0.2.0.
 3. Slice 10 (note box status label, author avatar) when the user asks.
+
+**Releasing a new version:** bump `version` in `package.json`, add a brief CHANGELOG entry, commit and push, then create a GitHub Release tagged `v<version>`. The workflow checks the tag matches the version, runs tests, publishes, and attaches the .vsix.
 
 ## Open decisions
 - Slice 10 scope: status label on notes and author avatar — parked, user to say when.
@@ -28,7 +30,6 @@ Follow-ups, known limits and the F5 checklist: `BACKLOG.md`.
 - VS Code only auto-scrolls a diff to a note when exactly one thread is expanded; we jump explicitly.
 - Esc in comment boxes is broken in VS Code 1.145 (its bug); Cancel is the close path. Don't add workarounds.
 - Hover sanitizer: `style` only on `<span>`, only colour/background/display/border-radius. Tooltip divider spacing is tuned to VS Code 1.145 hover CSS (measured in headless Chromium) — re-check after VS Code updates; don't guess spacing, measure.
-- Hook tests run real `git push` with Git for Windows `sh`.
 
 ## Slices
 - [x] 1 Base (SPEC §1–3): scaffold; Commits TreeView (working tree, unpushed commits, files); open diff; create/edit/reply/resolve line and range comments; persist to `.git/diff-notes/`; reload on start. STOP.
