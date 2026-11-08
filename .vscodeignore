@@ -4,3 +4,12 @@ test/**
 out/test/**
 **/*.map
 tsconfig.json
+sandbox/**
+sandbox-remote.git/**
+scripts/**
+.gitignore
+**/*.vsix
+SPEC.md
+PROGRESS.md
+BACKLOG.md
+CLAUDE.md

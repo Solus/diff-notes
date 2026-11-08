@@ -1,16 +1,22 @@
 # Backlog
 
-## F5 checklist (built, not yet checked in a running VS Code)
-- [ ] Slice 5: commit with a note, `git push` in sandbox → note moves to Pushed, counter drops.
-- [ ] Slice 6: enable `diffNotes.prePushHook`, push from a terminal → list + `Push anyway? [y/N]`.
-- [ ] Slice 7: rename a commented file and commit → note follows; reload → Group-by kept.
-- [ ] Open File: from note title bar, list row, diff title, Commits file row; old-side note on renamed file (sandbox `src/helpers.ts`).
-- [ ] Delete: trash in note box (reply vs whole note), Delete Note on rows, bulk deletes in `...` menu, auto-clear setting.
-- [ ] Copy: Copy Notes button, group/note Copy, paste result.
-- [ ] Group-by dropdown (check mark), File mode sub-headings under Pushed/Outdated.
-- [ ] Note bodies render markdown; edit box shows raw text.
-- [ ] Previous/Next Note buttons and Alt+P / Alt+N (incl. switching diff side).
-- [ ] Commits list wording (`src · 1 note`, `abc1234 · 2 notes`), status icons on rows/groups.
+## F5 checklist (all confirmed by the user, 2026-11-08)
+- [x] Slice 5: commit with a note, `git push` in sandbox → note moves to Pushed, counter drops.
+- [x] Slice 6: enable `diffNotes.prePushHook`, push from a terminal → list + `Push anyway? [y/N]`.
+- [x] Slice 7: rename a commented file and commit → note follows; reload → Group-by kept.
+- [x] Open File: from note title bar, list row, diff title, Commits file row; old-side note on renamed file (sandbox `src/helpers.ts`).
+- [x] Delete: trash in note box (reply vs whole note), Delete Note on rows, bulk deletes in `...` menu, auto-clear setting.
+- [x] Copy: Copy Notes button, group/note Copy, paste result.
+- [x] Group-by dropdown (check mark), File mode sub-headings under Pushed/Outdated.
+- [x] Note bodies render markdown; edit box shows raw text.
+- [x] Previous/Next Note buttons and Alt+P / Alt+N (incl. switching diff side).
+- [x] Commits list wording (`src · 1 note`, `abc1234 · 2 notes`), status icons on rows/groups.
+
+## Release 0.1.0 (prep done 2026-11-08, uncommitted)
+- [ ] Screenshots into `media/screenshots/` (diff-note, sidebar, pre-push); README links them.
+- [ ] Make `Solus/diff-notes` public (README images and repo links depend on it).
+- [ ] Publisher `bero-labs` exists; `vsce login` with a Marketplace token (user).
+- [ ] Install `diff-notes-0.1.0.vsix` in a clean VS Code and smoke-test, then `vsce publish`.
 
 ## Known limits (accepted unless the user says otherwise)
 - Notes go Outdated when lines inside their range change (accepted 2026-11-07).
