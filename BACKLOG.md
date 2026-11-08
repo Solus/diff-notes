@@ -13,7 +13,8 @@
 - [x] Commits list wording (`src · 1 note`, `abc1234 · 2 notes`), status icons on rows/groups.
 
 ## Release 0.1.0 (prep done 2026-11-08, uncommitted)
-- [ ] Screenshots into `media/screenshots/` (diff-note, sidebar, pre-push); README links them.
+- [x] Screenshots `diff-note.png`, `sidebar.png` taken 2026-11-08 (pre-push shot dropped).
+- [x] Remove the pre-push hook feature (user decision 2026-11-08): setting, hook code, README feature/setting/limit lines, BACKLOG known limits.
 - [ ] Make `Solus/diff-notes` public (README images and repo links depend on it).
 - [ ] Publisher `bero-labs` exists; `vsce login` with a Marketplace token (user).
 - [ ] Install `diff-notes-0.1.0.vsix` in a clean VS Code and smoke-test, then `vsce publish`.
@@ -25,8 +26,6 @@
 - Working-tree diff is read-only (can't edit in place).
 - A note may land on the wrong commit when several unpushed commits match its snippet (newest wins).
 - Old-side notes on a renamed file keep the old stored path (Open File maps it forward; storage doesn't).
-- Husky regenerating `.husky/_` overwrites our pre-push hook until the extension next starts.
-- Pre-push prompt only works from a terminal; IDE push buttons print the list and allow the push.
 - An unsaved draft box gets no gutter marker until saved; empty drafts may linger until their diff tab closes.
 - Copy as markdown guesses the code-fence language from the file extension, not VS Code's language registry.
 

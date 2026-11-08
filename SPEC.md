@@ -60,7 +60,7 @@ The built-in Comments panel will also list live threads for free. Outdated comme
 ## 6. Push behaviour
 
 - **Status bar counter:** number of open comments on **unpushed** commits (and working tree). Always on. Click opens the Comments list.
-- **Opt-in `pre-push` git hook** (setting, **off by default**): lists open comments and asks `Push anyway? [y/N]`. Must **chain** existing hooks (e.g. Husky) rather than overwrite them. Catches terminal pushes too.
+- **REMOVED before 0.1.0 (user, 2026-11-08): no pre-push hook.** ~~Opt-in `pre-push` git hook~~ (setting, **off by default**): lists open comments and asks `Push anyway? [y/N]`. Must **chain** existing hooks (e.g. Husky) rather than overwrite them. Catches terminal pushes too.
 - No VS Code push-button interception (not needed: pushes are done from the terminal).
 - **Comments on commits that were pushed anyway** stay visible, marked "pushed", don't count toward the counter, and sit in a "PUSHED" group.
 

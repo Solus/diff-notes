@@ -78,7 +78,9 @@ Follow-ups, known limits and the F5 checklist: `BACKLOG.md`.
 - Delete: trash on every comment in the note box; a reply goes at once, the first comment deletes the whole note (modal "Delete" confirm only if it has replies); "Delete Note" on list rows, same rule; works in the Outdated view. Pure store ops `remove`/`removeReply`.
 - Cleanup: Delete All Resolved/Pushed/Outdated in the Comments `...` menu (modal with count, info message at 0). `diffNotes.autoClearPushedDays` (0 = off) deletes notes whose optional `pushedAt` (stamped when first seen as pushed, cleared if back on an unpushed commit) is older than N days; runs after startup anchoring and each git change, skipped if the unpushed list can't be read (`tryUnpushed`). Logic in `src/core/cleanup.ts`.
 - Copy as markdown: `visibleList` (core) is the single source for what the list shows, used by both the tree and Copy; format in `src/core/markdown.ts` (`## group`, `- [ ]/[x] path:L5-7 (sha subject) — first line`, indented rest/replies/fenced snippet). Language id guessed from file extension (core map), not VS Code's language registry.
+- Pre-push hook removed before 0.1.0 (user, 2026-11-08).
 
 ## Log
 - S1–S8 built per slice lines above; extras and fixes since (all committed, see `git log`).
 - Detailed per-slice open items moved to `BACKLOG.md` (2026-11-07 handoff).
+- Removed the pre-push hook (setting, src/hook.ts, src/core/hook.ts, test/hook.test.ts, docs); slice 6 history kept as is.

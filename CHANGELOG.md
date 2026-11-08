@@ -9,4 +9,3 @@ First release.
 - Notes are marked as pushed or outdated, and follow files across renames.
 - Jump between notes with Previous / Next (Alt+P / Alt+N).
 - Copy notes as markdown, delete resolved, pushed or outdated notes, or auto-clear pushed ones.
-- Optional pre-push hook that lists open notes before you push.

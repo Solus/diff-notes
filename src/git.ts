@@ -151,12 +151,6 @@ export class GitService {
     return os.userInfo().username;
   }
 
-  /** Absolute hooks directory (honours core.hooksPath, e.g. Husky). */
-  async hooksDir(): Promise<string> {
-    const out = (await this.run(['rev-parse', '--git-path', 'hooks'])).trim();
-    return path.resolve(this.root, out);
-  }
-
   private run(args: string[]): Promise<string> {
     return new Promise((resolve, reject) => {
       execFile(this.api.git.path, args, { cwd: this.root, maxBuffer: 64 * 1024 * 1024 }, (err, stdout) => (err ? reject(err) : resolve(stdout)));
