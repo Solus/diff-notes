@@ -17,7 +17,8 @@
 - [x] Remove the pre-push hook feature (user decision 2026-11-08): setting, hook code, README feature/setting/limit lines, BACKLOG known limits.
 - [ ] Make `Solus/diff-notes` public (README images and repo links depend on it).
 - [ ] Publisher `bero-labs` exists; `vsce login` with a Marketplace token (user).
-- [ ] Install `diff-notes-0.1.0.vsix` in a clean VS Code and smoke-test, then `vsce publish`.
+- [ ] Install `diff-notes-0.1.0.vsix` in a clean VS Code and smoke-test.
+- [ ] Add repo secret `VSCE_PAT`; publish by creating GitHub Release `v0.1.0` (workflow `.github/workflows/publish.yml`, untested until first run).
 
 ## Known limits (accepted unless the user says otherwise)
 - Notes go Outdated when lines inside their range change (accepted 2026-11-07).
