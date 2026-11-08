@@ -2,7 +2,7 @@
   "name": "diff-notes",
   "displayName": "Diff Notes",
   "description": "PR-style notes on local, unpushed commits and uncommitted changes.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "bero-labs",
   "license": "MIT",
   "engines": {
