@@ -1,9 +1,11 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { fileStatuses } from './fileDecorations';
 import { ChangedFile, CommitInfo } from './core/gitParse';
 import { WORKING_TREE } from './core/model';
 import { joinParts, noteCount } from './core/rowText';
 import { CommentStore } from './core/store';
+import { diffUri } from './diffUri';
 import { GitService } from './git';
 
 type Node =
@@ -86,12 +88,16 @@ export class CommitsProvider implements vscode.TreeDataProvider<Node> {
       }
       case 'file': {
         const f = node.file;
-        const item = new vscode.TreeItem(path.posix.basename(f.path), vscode.TreeItemCollapsibleState.None);
+        const open = this.openCount(node.origin, f);
+        const name = path.posix.basename(f.path);
+        const item = new vscode.TreeItem(name, vscode.TreeItemCollapsibleState.None);
         const dir = path.posix.dirname(f.path);
-        item.description = joinParts(dir === '.' ? '' : dir, noteCount(this.openCount(node.origin, f)));
-        item.tooltip = `${f.oldPath ? `${f.oldPath} → ` : ''}${f.path} · ${STATUS_TEXT[f.status]}`;
+        const folder = dir === '.' ? '' : dir;
+        item.description = open > 0 ? `· 💬${open}${folder ? ` · ${folder}` : ''}` : folder;
+        item.tooltip = `${f.oldPath ? `${f.oldPath} → ` : ''}${f.path} · ${STATUS_TEXT[f.status]}${open > 0 ? ` · ${noteCount(open)}` : ''}`;
         if (this.git) {
-          item.resourceUri = vscode.Uri.file(this.git.abs(f.path));
+          item.resourceUri = diffUri({ file: f.path, origin: node.origin, side: 'new' }); // keyed per commit for status/note decoration
+          fileStatuses.set(item.resourceUri.toString(), f.status);
         }
         item.contextValue = 'file';
         item.command = { command: 'diffNotes.openDiff', title: 'Open Diff', arguments: [node.origin, node.originLabel, f] };

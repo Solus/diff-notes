@@ -46,6 +46,11 @@
     },
     "colors": [
       {
+        "id": "diffNotes.fileNoteForeground",
+        "description": "Colour of file names in the Commits view that have open Diff Notes notes (overrides the git status colour).",
+        "defaults": { "dark": "#d9a843", "light": "#b8860b", "highContrast": "#ffd866", "highContrastLight": "#8a6500" }
+      },
+      {
         "id": "diffNotes.overviewRulerMarker",
         "description": "Scrollbar (overview ruler) mark for lines that have an open Diff Notes note.",
         "defaults": { "dark": "#d9a843cc", "light": "#b8860bcc", "highContrast": "#ffd866", "highContrastLight": "#8a6500" }

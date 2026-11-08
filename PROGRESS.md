@@ -7,11 +7,11 @@ Follow-ups, known limits and the F5 checklist: `BACKLOG.md`.
 - Slices 1–8 done, plus extras (delete/auto-clear, copy as markdown, Group-by, Open File, Previous/Next Note, markdown bodies, note-first tooltips). Pre-push hook was removed before release.
 - **0.1.0 is published**: GitHub Release `v0.1.0` triggered `.github/workflows/publish.yml`, which succeeded. The Marketplace listing (`bero-labs.diff-notes`) was still 404 right after (automated scan pending, usually minutes to an hour). Repo `Solus/diff-notes` is public.
 - F5 checklist: user confirmed everything ("tested, looks ok"). `npm run build` and `npm test` pass; tree clean and pushed.
-- Slice 9 half done (status icons, tooltips). Slice 10 parked (user: functionality first, polish later).
+- Slice 9 built (status icons, tooltips, file badges, sidebar count badge); the last two await the user's F5 check. Slice 10 parked (user: functionality first, polish later).
 
 ## Next steps
 1. **Confirm the listing went live** at https://marketplace.visualstudio.com/items?itemName=bero-labs.diff-notes (check the README screenshots render), then install it from the Marketplace in a clean VS Code and smoke-test. If still missing after ~1 hour, investigate in the Marketplace publisher page and the Actions run log.
-2. **Slice 9 rest — brief for an implementer:** Goal: in the Commits view, file rows with open notes get a badge and colour (FileDecorationProvider on the `diff-notes:` file URIs used by Commits rows), and the Diff Notes sidebar icon shows the open-notes count (TreeView `badge` on the Comments view, same count as the status bar). Area: `src/` view code; count logic already in `src/core/commentList.ts`. Verify: `npm run build && npm test`; add a pure test if new logic is added. Done: both visible under F5 in `sandbox/`, slice 9 ticked, PROGRESS updated per slice protocol. Ship as 0.2.0.
+2. **F5 check of slice 9 rest** (in `sandbox/`): Commits file rows show the git status letter (M/A/D/R) and, with open notes, an amber name; the Diff Notes sidebar icon shows the open-notes count (same as status bar) and both update on add/resolve/delete. Then bump to 0.2.0 (CHANGELOG, release).
 3. Slice 10 (note box status label, author avatar) when the user asks.
 
 **Releasing a new version:** bump `version` in `package.json`, add a brief CHANGELOG entry, commit and push, then create a GitHub Release tagged `v<version>`. The workflow checks the tag matches the version, runs tests, publishes, and attaches the .vsix.
@@ -40,7 +40,7 @@ Follow-ups, known limits and the F5 checklist: `BACKLOG.md`.
 - [x] 6 Pre-push hook (SPEC §6): opt-in setting, chains existing hooks.
 - [x] 7 Polish (SPEC §9): remembered grouping, renames and deletions, remaining open details.
 - [x] 8 Diff markers: commented lines get a soft background tint and a gutter note icon, plus scrollbar (overview ruler) marks; colours as contributed theme colours with defaults. STOP.
-- [ ] 9 Panel polish: tinted status icon per note (open/resolved/outdated/pushed) (done), rich markdown tooltips (full text, author, date, range) (done), file badges + colour for files with open notes, open-notes count badge on the sidebar icon . STOP.
+- [x] 9 Panel polish: tinted status icon per note (open/resolved/outdated/pushed) (done), rich markdown tooltips (full text, author, date, range) (done), file badges + colour for files with open notes (done), open-notes count badge on the sidebar icon (done). STOP.
 - [ ] 10 Note box: status label on notes (Resolved, Outdated), git user name as author with an avatar icon. STOP.
 
 ## Decisions
@@ -80,8 +80,11 @@ Follow-ups, known limits and the F5 checklist: `BACKLOG.md`.
 - Cleanup: Delete All Resolved/Pushed/Outdated in the Comments `...` menu (modal with count, info message at 0). `diffNotes.autoClearPushedDays` (0 = off) deletes notes whose optional `pushedAt` (stamped when first seen as pushed, cleared if back on an unpushed commit) is older than N days; runs after startup anchoring and each git change, skipped if the unpushed list can't be read (`tryUnpushed`). Logic in `src/core/cleanup.ts`.
 - Copy as markdown: `visibleList` (core) is the single source for what the list shows, used by both the tree and Copy; format in `src/core/markdown.ts` (`## group`, `- [ ]/[x] path:L5-7 (sha subject) — first line`, indented rest/replies/fenced snippet). Language id guessed from file extension (core map), not VS Code's language registry.
 - Pre-push hook removed before 0.1.0 (user, 2026-11-08).
+- Commits file rows use `diff-notes:` URIs (`side=new`, keyed per origin) as `resourceUri`, so `FileDecorations` (`src/fileDecorations.ts`) badges per commit; side ignored when counting (`countOpenInFile`, core). Badge = git status letter (status kept in `fileStatuses` map set by the Commits view); name colour = git colour, amber `diffNotes.fileNoteForeground` when the file has open notes. Note count shown at the start of the file row description as `· 💬N · dir` and in the tooltip (not in the description).
+- Sidebar badge = `commentsTree.badge` set in `updateBar` with the status-bar count (`countOpenUnpushed`); cleared at 0. Decorations refresh in `refreshComments`.
 
 ## Log
 - S1–S8 built per slice lines above; extras and fixes since (all committed, see `git log`).
 - Detailed per-slice open items moved to `BACKLOG.md` (2026-11-07 handoff).
 - Removed the pre-push hook (setting, src/hook.ts, src/core/hook.ts, test/hook.test.ts, docs); slice 6 history kept as is.
+- S9 rest built: file-row note badge/colour and sidebar count badge; build and tests pass; F5 visual check pending (user).

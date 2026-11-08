@@ -17,6 +17,7 @@ import { countNotes, notesToMarkdown } from './core/markdown';
 import { diffUri, parseDiffUri } from './diffUri';
 import { GitService } from './git';
 import { Markers } from './markers';
+import { FileDecorations } from './fileDecorations';
 import { API, GitExtension, Repository } from './gitApi';
 import { NotesFileIO, resolveGitDir } from './storage';
 
@@ -60,15 +61,19 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
   }
   const bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
   bar.command = 'diffNotes.comments.focus';
+  const commentsTree = vscode.window.createTreeView('diffNotes.comments', { treeDataProvider: commentsView });
   const updateBar = async (): Promise<void> => {
     const n = countOpenUnpushed(store.all(), (await git.unpushedCommits()).map(c => c.sha));
     bar.text = `$(comment) ${n}`;
     bar.tooltip = `Diff Notes: ${n} open comment${n === 1 ? '' : 's'} on unpushed commits and working tree`;
+    commentsTree.badge = n > 0 ? { value: n, tooltip: bar.tooltip } : undefined; // same count as the status bar
   };
   const markers = new Markers(store, ctx);
-  ctx.subscriptions.push(markers);
+  const fileDecorations = new FileDecorations(store);
+  ctx.subscriptions.push(markers, fileDecorations);
   const refreshComments = (): void => {
     markers.refresh();
+    fileDecorations.refresh();
     commentsView.refresh();
     commits.refresh();
     void updateBar();
@@ -141,7 +146,7 @@ async function start(ctx: vscode.ExtensionContext, commits: CommitsProvider, api
   void vscode.commands.executeCommand('setContext', 'diffNotes.groupMode', commentsView.mode);
   bar.show();
   void updateBar();
-  ctx.subscriptions.push(commentsView, bar, vscode.window.createTreeView('diffNotes.comments', { treeDataProvider: commentsView }));
+  ctx.subscriptions.push(commentsView, bar, commentsTree);
 
   let timer: NodeJS.Timeout | undefined;
   const schedule = (): void => {

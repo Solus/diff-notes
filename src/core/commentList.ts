@@ -28,6 +28,11 @@ export function countOpenUnpushed(all: readonly StoredComment[], unpushedShas: r
   return all.filter(c => c.status === 'open' && !c.outdated && (c.origin === WORKING_TREE || unpushed.has(c.origin))).length;
 }
 
+/** Open, non-outdated notes on one file of one commit / the working tree (either side). Drives the Commits file badge. */
+export function countOpenInFile(all: readonly StoredComment[], origin: string, file: string): number {
+  return all.filter(c => c.status === 'open' && !c.outdated && c.origin === origin && c.file === file).length;
+}
+
 /** Rank of an origin in the Commits list: working tree first, then unpushed commits in order, then the rest. */
 function originRank(origin: string, order: readonly string[]): number {
   if (origin === WORKING_TREE) {

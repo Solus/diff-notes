@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { countOpenUnpushed, filterComments, groupComments, sortComments } from '../src/core/commentList';
+import { countOpenInFile, countOpenUnpushed, filterComments, groupComments, sortComments } from '../src/core/commentList';
 import { StoredComment, WORKING_TREE } from '../src/core/model';
 
 let n = 0;
@@ -23,6 +23,12 @@ test('open-only filter drops resolved', () => {
 test('counter counts open comments on working tree and unpushed only', () => {
   assert.equal(countOpenUnpushed(all, order), 3);
   assert.equal(countOpenUnpushed(all, []), 1);
+});
+
+test('file count: open, non-outdated notes of one file and origin', () => {
+  assert.equal(countOpenInFile(all, 'new', 'a.ts'), 1);
+  assert.equal(countOpenInFile(all, 'new', 'b.ts'), 0); // resolved
+  assert.equal(countOpenInFile([{ ...mk('new', 'a.ts', 1), outdated: true }], 'new', 'a.ts'), 0);
 });
 
 test('commit grouping: working tree, commits in list order, then PUSHED', () => {
