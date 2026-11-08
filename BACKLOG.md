@@ -12,13 +12,13 @@
 - [x] Previous/Next Note buttons and Alt+P / Alt+N (incl. switching diff side).
 - [x] Commits list wording (`src · 1 note`, `abc1234 · 2 notes`), status icons on rows/groups.
 
-## Release 0.1.0 (prep done 2026-11-08, uncommitted)
+## Release 0.1.0 (published 2026-11-08)
 - [x] Screenshots `diff-note.png`, `sidebar.png` taken 2026-11-08 (pre-push shot dropped).
 - [x] Remove the pre-push hook feature (user decision 2026-11-08): setting, hook code, README feature/setting/limit lines, BACKLOG known limits.
-- [ ] Make `Solus/diff-notes` public (README images and repo links depend on it).
-- [ ] Publisher `bero-labs` exists; `vsce login` with a Marketplace token (user).
+- [x] `Solus/diff-notes` made public 2026-11-08.
+- [x] Publisher `bero-labs` + `VSCE_PAT` secret set up.
 - [ ] Install `diff-notes-0.1.0.vsix` in a clean VS Code and smoke-test.
-- [ ] Add repo secret `VSCE_PAT`; publish by creating GitHub Release `v0.1.0` (workflow `.github/workflows/publish.yml`, untested until first run).
+- [x] Published 0.1.0 via GitHub Release `v0.1.0` (workflow run succeeded 2026-11-08).
 
 ## Known limits (accepted unless the user says otherwise)
 - Notes go Outdated when lines inside their range change (accepted 2026-11-07).
